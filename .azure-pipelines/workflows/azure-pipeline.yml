@@ -1,0 +1,36 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+
+steps:
+  - task: UseDotNet@2
+    displayName: 'Install .NET SDK'
+    inputs:
+      packageType: 'sdk'
+      version: '10.0.x'
+      includePreviewVersions: true
+
+  - script: |
+      dotnet --info
+      dotnet restore
+    displayName: 'Restore NuGet packages'
+
+  - script: dotnet build --configuration $(buildConfiguration) --no-restore
+    displayName: 'Build solution'
+
+  - script: dotnet test --configuration $(buildConfiguration) --no-build --logger trx --results-directory $(System.DefaultWorkingDirectory)/TestResults
+    displayName: 'Run unit tests'
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: '$(System.DefaultWorkingDirectory)/TestResults/**/*.trx'
+      testRunTitle: 'Unit Tests'
+      mergeTestResults: true
+      failTaskOnFailedTests: true

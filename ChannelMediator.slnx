@@ -7,6 +7,9 @@
     <File Path="SEQUENCE_DIAGRAM.md" />
   </Folder>
   <Project Path="ChannelMediator.Contracts/ChannelMediator.Contracts.csproj" />
+  <Project Path="ChannelMediator.Performance/ChannelMediator.Performance.csproj">
+    <BuildType Project="Release" />
+  </Project>
   <Project Path="ChannelMediator.Tests/ChannelMediator.Tests.csproj" />
   <Project Path="ChannelMediator/ChannelMediator.csproj" />
   <Project Path="ChannelMediatorConsole/ChannelMediatorConsole.csproj" />
