@@ -7,8 +7,6 @@ global using System.Threading;
 global using System.Threading.Channels;
 global using System.Threading.Tasks;
 
-global using ChannelMediator.Contracts;
-
 global using Microsoft.Extensions.DependencyInjection;
 
 [assembly: InternalsVisibleTo("ChannelMediator.Tests")]

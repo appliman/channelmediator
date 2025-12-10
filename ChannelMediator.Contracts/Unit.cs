@@ -1,9 +1,9 @@
-﻿namespace ChannelMediator.Contracts;
+﻿namespace ChannelMediator;
 
 /// <summary>
 /// Represents a void response type for requests that don't return a value.
 /// </summary>
-public struct Unit : IEquatable<Unit>, IComparable<Unit>, IComparable
+public readonly struct Unit : IEquatable<Unit>, IComparable<Unit>, IComparable
 {
 	private static readonly Unit _value = new();
 

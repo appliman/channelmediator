@@ -1,5 +1,4 @@
 ﻿using ChannelMediator;
-using ChannelMediator.Contracts;
 
 namespace ChannelMediatorConsole;
 

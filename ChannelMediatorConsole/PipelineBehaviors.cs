@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
+
 using ChannelMediator;
-using ChannelMediator.Contracts;
 
 namespace ChannelMediatorConsole;
 
@@ -69,14 +69,14 @@ public class PerformanceMonitoringBehavior<TRequest, TResponse> : IPipelineBehav
 	{
 		var requestName = typeof(TRequest).Name;
 		var startTime = DateTime.UtcNow;
-		
+
 		Console.WriteLine($"[PERF-MONITOR] Request {requestName} started at {startTime:HH:mm:ss.fff}");
 
 		try
 		{
 			var response = await next();
 			var duration = DateTime.UtcNow - startTime;
-			
+
 			var emoji = duration.TotalMilliseconds switch
 			{
 				< 50 => "🚀",
@@ -86,7 +86,7 @@ public class PerformanceMonitoringBehavior<TRequest, TResponse> : IPipelineBehav
 			};
 
 			Console.WriteLine($"[PERF-MONITOR] {emoji} Request {requestName} completed in {duration.TotalMilliseconds:F2}ms");
-			
+
 			return response;
 		}
 		catch (Exception ex)

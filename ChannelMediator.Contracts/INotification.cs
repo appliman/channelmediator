@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator.Contracts;
+﻿namespace ChannelMediator;
 
 public interface INotification
 {
