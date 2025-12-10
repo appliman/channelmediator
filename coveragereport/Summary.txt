@@ -1,0 +1,27 @@
+Summary
+  Generated on: 10/12/2025 - 14:15:47
+  Coverage date: 10/12/2025 - 14:15:34
+  Parser: Cobertura
+  Assemblies: 1
+  Classes: 5
+  Files: 5
+  Line coverage: 98.6%
+  Covered lines: 148
+  Uncovered lines: 2
+  Coverable lines: 150
+  Total lines: 576
+  Branch coverage: 94.1% (32 of 34)
+  Covered branches: 32
+  Total branches: 34
+  Method coverage: 100% (13 of 13)
+  Full method coverage: 92.3% (12 of 13)
+  Covered methods: 13
+  Fully covered methods: 12
+  Total methods: 13
+
+ChannelMediator                                   98.6%
+  ChannelMediator.ChannelMediator                  100%
+  ChannelMediator.NotificationHandlerWrapper<T>    100%
+  ChannelMediator.RequestEnvelope<T>               100%
+  ChannelMediator.RequestHandlerWrapper<T1, T2>    100%
+  ChannelMediator.ServiceCollectionExtensions     98.1%

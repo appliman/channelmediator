@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="CODE_EXAMPLES.md" />
+    <File Path="MEDIATR_COMPATIBILITY.md" />
+    <File Path="PIPELINE_BEHAVIORS.md" />
+    <File Path="README.md" />
+    <File Path="SEQUENCE_DIAGRAM.md" />
+  </Folder>
+  <Project Path="ChannelMediator.Contracts/ChannelMediator.Contracts.csproj" />
+  <Project Path="ChannelMediator.Tests/ChannelMediator.Tests.csproj" />
+  <Project Path="ChannelMediator/ChannelMediator.csproj" />
+  <Project Path="ChannelMediatorConsole/ChannelMediatorConsole.csproj" />
+</Solution>
