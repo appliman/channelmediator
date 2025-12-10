@@ -2,6 +2,7 @@
 
 namespace ChannelMediator.Tests;
 
+[Collection("CommandHandlerTests")]
 public class CommandHandlerTests
 {
 	[Fact]

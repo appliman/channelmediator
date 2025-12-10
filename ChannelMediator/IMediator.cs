@@ -37,4 +37,16 @@ public interface IMediator
 	/// MediatR-compatible method that internally calls PublishAsync.
 	/// </summary>
 	Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
+
+	/// <summary>
+	/// Sends a request to a single handler and returns the response as an object.
+	/// This method accepts a non-generic request object and returns the response boxed as object.
+	/// </summary>
+	Task<object?> InvokeAsync(object request, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Sends a request to a single handler and returns the response as an object.
+	/// MediatR-compatible method that internally calls InvokeAsync.
+	/// </summary>
+	Task<object?> Send(object request, CancellationToken cancellationToken = default);
 }

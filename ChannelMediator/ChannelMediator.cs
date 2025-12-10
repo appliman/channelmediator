@@ -155,6 +155,77 @@ internal sealed class ChannelMediator : IMediator, IAsyncDisposable
 		await PublishAsync(notification, cancellationToken).ConfigureAwait(false);
 	}
 
+	/// <summary>
+	/// Sends a request to a single handler and returns the response as an object.
+	/// This method accepts a non-generic request object and returns the response boxed as object.
+	/// </summary>
+	public async Task<object?> InvokeAsync(object request, CancellationToken cancellationToken = default)
+	{
+		if (request is null)
+		{
+			throw new ArgumentNullException(nameof(request));
+		}
+
+		var requestType = request.GetType();
+		var requestInterfaces = requestType.GetInterfaces()
+			.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>))
+			.ToList();
+
+		if (requestInterfaces.Count == 0)
+		{
+			// Check if it's an IRequest (command without response)
+			if (request is IRequest commandRequest)
+			{
+				await InvokeAsync(commandRequest, cancellationToken).ConfigureAwait(false);
+				return null;
+			}
+
+			throw new ArgumentException($"Request type {requestType.Name} does not implement IRequest<TResponse> or IRequest", nameof(request));
+		}
+
+		var requestInterface = requestInterfaces[0];
+		var responseType = requestInterface.GetGenericArguments()[0];
+
+		// Use reflection to call InvokeAsync<TResponse>
+		var invokeMethod = typeof(ChannelMediator)
+			.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+			.FirstOrDefault(m => 
+				m.Name == nameof(InvokeAsync) && 
+				m.IsGenericMethodDefinition && 
+				m.GetGenericArguments().Length == 1 &&
+				m.GetParameters().Length == 2 &&
+				m.GetParameters()[0].ParameterType.IsGenericType &&
+				m.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IRequest<>));
+
+		if (invokeMethod is null)
+		{
+			throw new InvalidOperationException($"Could not find InvokeAsync method for {requestType.Name}");
+		}
+
+		var genericInvokeMethod = invokeMethod.MakeGenericMethod(responseType);
+		var taskResult = genericInvokeMethod.Invoke(this, new[] { request, cancellationToken });
+
+		// Handle ValueTask<TResponse> to object?
+		var awaitMethod = taskResult!.GetType().GetMethod(nameof(ValueTask<object>.AsTask));
+		var task = (Task)awaitMethod!.Invoke(taskResult, null)!;
+		await task.ConfigureAwait(false);
+
+		var resultProperty = task.GetType().GetProperty(nameof(Task<object>.Result));
+		var result = resultProperty!.GetValue(task);
+
+		// Return null for Unit type (commands without response)
+		return result is Unit ? null : result;
+	}
+
+	/// <summary>
+	/// Sends a request to a single handler and returns the response as an object.
+	/// MediatR-compatible method that internally calls InvokeAsync.
+	/// </summary>
+	public async Task<object?> Send(object request, CancellationToken cancellationToken = default)
+	{
+		return await InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		_channel.Writer.TryComplete();
