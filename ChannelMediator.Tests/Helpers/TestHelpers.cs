@@ -79,6 +79,10 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
         {
             throw new ArgumentException("Value cannot be empty");
         }
+        if (request is TestCommand tc && string.IsNullOrEmpty(tc.Value))
+        {
+            throw new ArgumentException("Value cannot be empty");
+        }
         return await next();
     }
 }
@@ -97,5 +101,31 @@ public class DelayBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TR
     {
         await Task.Delay(_delayMs, cancellationToken);
         return await next();
+    }
+}
+
+// Command types (requests without return value)
+public record TestCommand(string Value) : IRequest;
+
+public class TestCommandHandler : IRequestHandler<TestCommand>
+{
+    public static string LastExecutedValue { get; private set; } = string.Empty;
+    public static List<string> ExecutedValues { get; } = new();
+
+    public ValueTask HandleAsync(TestCommand request, CancellationToken cancellationToken)
+    {
+        LastExecutedValue = request.Value;
+        ExecutedValues.Add(request.Value);
+        return ValueTask.CompletedTask;
+    }
+}
+
+public record FailingCommand : IRequest;
+
+public class FailingCommandHandler : IRequestHandler<FailingCommand>
+{
+    public ValueTask HandleAsync(FailingCommand request, CancellationToken cancellationToken)
+    {
+        throw new InvalidOperationException("Command handler failed");
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace ChannelMediator;
 
-public interface IRequestHandlerWrapper
+internal interface IRequestHandlerWrapper
 {
 	Type RequestType { get; }
 

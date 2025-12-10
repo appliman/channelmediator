@@ -1,5 +1,5 @@
 ﻿using ChannelMediator.Contracts;
 
-namespace ChannelMediator;
+namespace ChannelMediatorConsole;
 
 public record ProductAddedNotification(string ProductCode, int Quantity, decimal Total) : INotification;

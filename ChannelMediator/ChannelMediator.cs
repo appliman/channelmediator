@@ -1,6 +1,6 @@
 ﻿namespace ChannelMediator;
 
-public sealed class ChannelMediator : IMediator, IAsyncDisposable
+internal sealed class ChannelMediator : IMediator, IAsyncDisposable
 {
 	private readonly IReadOnlyDictionary<Type, IRequestHandlerWrapper> _handlers;
 	private readonly IReadOnlyDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
@@ -54,6 +54,16 @@ public sealed class ChannelMediator : IMediator, IAsyncDisposable
 
 		await _channel.Writer.WriteAsync(envelope, cancellationToken).ConfigureAwait(false);
 		return await completionSource.Task.ConfigureAwait(false);
+	}
+
+	public async ValueTask InvokeAsync(IRequest request, CancellationToken cancellationToken = default)
+	{
+		if (request is null)
+		{
+			throw new ArgumentNullException(nameof(request));
+		}
+
+		await InvokeAsync<Unit>(request, cancellationToken).ConfigureAwait(false);
 	}
 
 	public async ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
@@ -127,6 +137,15 @@ public sealed class ChannelMediator : IMediator, IAsyncDisposable
 	}
 
 	/// <summary>
+	/// Sends a request to a single handler without returning a value.
+	/// MediatR-compatible method that internally calls InvokeAsync.
+	/// </summary>
+	public async Task Send(IRequest request, CancellationToken cancellationToken = default)
+	{
+		await InvokeAsync(request, cancellationToken).ConfigureAwait(false);
+	}
+
+	/// <summary>
 	/// Publishes a notification to multiple handlers.
 	/// MediatR-compatible method that internally calls PublishAsync.
 	/// </summary>
@@ -139,7 +158,11 @@ public sealed class ChannelMediator : IMediator, IAsyncDisposable
 	public async ValueTask DisposeAsync()
 	{
 		_channel.Writer.TryComplete();
-		await _cts.CancelAsync();
+		
+		if (!_cts.IsCancellationRequested)
+		{
+			await _cts.CancelAsync();
+		}
 
 		try
 		{

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace ChannelMediator;
+namespace ChannelMediatorConsole;
 
 public interface IProductCache
 {

@@ -53,6 +53,23 @@ var notification2 = new ProductAddedNotification(cartItem2.ProductCode, cartItem
 await mediator.Publish(notification2, cancellationToken);
 
 Console.WriteLine();
+
+// Test Command (no response) - using InvokeAsync
+Console.WriteLine("=== Testing Command without response - InvokeAsync ===");
+var logCommand = new LogOrderCommand("ORD-12345", 299.99m);
+await mediator.InvokeAsync(logCommand, cancellationToken);
+
+Console.WriteLine();
+
+// Test Command (no response) - using Send (MediatR-compatible)
+Console.WriteLine("=== Testing Command without response - Send (MediatR compatible) ===");
+var emailCommand = new SendEmailCommand(
+	"customer@example.com",
+	"Order Confirmation",
+	"Your order has been confirmed!");
+await mediator.Send(emailCommand, cancellationToken);
+
+Console.WriteLine();
 Console.WriteLine("Press any key to exit...");
 Console.Read();
 

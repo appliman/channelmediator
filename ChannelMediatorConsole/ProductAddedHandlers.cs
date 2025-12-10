@@ -1,4 +1,6 @@
-﻿namespace ChannelMediator;
+﻿using ChannelMediator;
+
+namespace ChannelMediatorConsole;
 
 public sealed class LogProductAddedHandler : INotificationHandler<ProductAddedNotification>
 {

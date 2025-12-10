@@ -9,6 +9,12 @@ public interface IMediator
 	ValueTask<TResponse> InvokeAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
 
 	/// <summary>
+	/// Sends a request to a single handler without returning a value.
+	/// This is the core method used internally for commands.
+	/// </summary>
+	ValueTask InvokeAsync(IRequest request, CancellationToken cancellationToken = default);
+
+	/// <summary>
 	/// Publishes a notification to multiple handlers.
 	/// This is the core method used internally.
 	/// </summary>
@@ -19,6 +25,12 @@ public interface IMediator
 	/// MediatR-compatible method that internally calls InvokeAsync.
 	/// </summary>
 	Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Sends a request to a single handler without returning a value.
+	/// MediatR-compatible method that internally calls InvokeAsync.
+	/// </summary>
+	Task Send(IRequest request, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	/// Publishes a notification to multiple handlers.
