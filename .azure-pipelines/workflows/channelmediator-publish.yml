@@ -49,12 +49,12 @@ stages:
             inputs:
               command: 'test'
               projects: '**/*Tests.csproj'
-              arguments: '--configuration $(buildConfiguration) --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/coverage'
+              arguments: '--configuration $(buildConfiguration) --verbosity normal --collect:"XPlat Code Coverage"'
 
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage results'
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/coverage/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
 
   - stage: Pack
     displayName: 'Pack and Publish NuGet Packages'
