@@ -18,7 +18,7 @@ public class ServiceCollectionExtensionsTests
         // Assert
         var mediator = serviceProvider.GetService<IMediator>();
         mediator.Should().NotBeNull();
-        mediator.Should().BeOfType<ChannelMediator>();
+        mediator.Should().BeOfType<Mediator>();
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class ServiceCollectionExtensionsTests
         var request = new TestRequest("test");
 
         // Act
-        await mediator.InvokeAsync(request);
+        await mediator.Send(request);
         await Task.Delay(50); // Give time for processing
 
         // Assert
@@ -227,7 +227,7 @@ public class ServiceCollectionExtensionsTests
         var request = new TestRequest("test");
 
         // Act
-        await mediator.InvokeAsync(request);
+        await mediator.Send(request);
         await Task.Delay(50);
 
         // Assert

@@ -5,7 +5,7 @@ namespace ChannelMediator.Tests;
 public class ChannelMediatorTests
 {
     [Fact]
-    public async Task InvokeAsync_WithValidRequest_ReturnsExpectedResponse()
+    public async Task Send_WithValidRequest_ReturnsExpectedResponse()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -16,7 +16,7 @@ public class ChannelMediatorTests
         var request = new TestRequest("test");
 
         // Act
-        var response = await mediator.InvokeAsync(request);
+        var response = await mediator.Send(request);
 
         // Assert
         response.Should().NotBeNull();
@@ -24,7 +24,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task Send_WithValidRequest_ReturnsExpectedResponse()
+    public async Task Send_WithAnotherValidRequest_ReturnsExpectedResponse()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -43,7 +43,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task InvokeAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task Send_WithNullRequest_ThrowsArgumentNullException()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -53,15 +53,15 @@ public class ChannelMediatorTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await mediator.InvokeAsync<TestResponse>(null!));
+            await mediator.Send<TestResponse>(null!));
     }
 
     [Fact]
-    public async Task InvokeAsync_WithUnregisteredRequest_ThrowsInvalidOperationException()
+    public async Task Send_WithUnregisteredRequest_ThrowsInvalidOperationException()
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddSingleton<IMediator>(sp => new ChannelMediator(Array.Empty<IRequestHandlerWrapper>()));
+        services.AddSingleton<IMediator>(sp => new Mediator(Array.Empty<IRequestHandlerWrapper>()));
         var serviceProvider = services.BuildServiceProvider();
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -69,12 +69,12 @@ public class ChannelMediatorTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await mediator.InvokeAsync(request));
+            await mediator.Send(request));
         exception.Message.Should().Contain("No handler registered");
     }
 
     [Fact]
-    public async Task InvokeAsync_WithFailingHandler_ThrowsException()
+    public async Task Send_WithFailingHandler_ThrowsException()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -86,12 +86,12 @@ public class ChannelMediatorTests
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await mediator.InvokeAsync(request));
+            await mediator.Send(request));
         exception.Message.Should().Be("Handler failed");
     }
 
     [Fact]
-    public async Task InvokeAsync_WithCancellation_ThrowsOperationCanceledException()
+    public async Task Send_WithCancellation_ThrowsOperationCanceledException()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -105,11 +105,11 @@ public class ChannelMediatorTests
 
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await mediator.InvokeAsync(request, cts.Token));
+            await mediator.Send(request, cts.Token));
     }
 
     [Fact]
-    public async Task PublishAsync_WithValidNotification_CallsAllHandlers()
+    public async Task Publish_WithValidNotification_CallsAllHandlers()
     {
         // Arrange
         var handler1 = new TestNotificationHandler1();
@@ -126,7 +126,7 @@ public class ChannelMediatorTests
         var notification = new TestNotification("test message");
 
         // Act
-        await mediator.PublishAsync(notification);
+        await mediator.Publish(notification);
         await Task.Delay(50); // Give time for sequential processing
 
         // Assert
@@ -137,7 +137,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task Publish_WithValidNotification_CallsAllHandlers()
+    public async Task Publish_WithAnotherValidNotification_CallsAllHandlers()
     {
         // Arrange
         var handler1 = new TestNotificationHandler1();
@@ -163,7 +163,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task PublishAsync_WithParallelStrategy_CallsAllHandlersInParallel()
+    public async Task Publish_WithParallelStrategy_CallsAllHandlersInParallel()
     {
         // Arrange
         var handler1 = new TestNotificationHandler1();
@@ -183,7 +183,7 @@ public class ChannelMediatorTests
         var notification = new TestNotification("parallel test");
 
         // Act
-        await mediator.PublishAsync(notification);
+        await mediator.Publish(notification);
 
         // Assert
         handler1.HandledMessages.Should().ContainSingle();
@@ -191,7 +191,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task PublishAsync_WithNullNotification_ThrowsArgumentNullException()
+    public async Task Publish_WithNullNotification_ThrowsArgumentNullException()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -201,11 +201,11 @@ public class ChannelMediatorTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await mediator.PublishAsync<TestNotification>(null!));
+            await mediator.Publish<TestNotification>(null!));
     }
 
     [Fact]
-    public async Task PublishAsync_WithUnregisteredNotification_DoesNotThrow()
+    public async Task Publish_WithUnregisteredNotification_DoesNotThrow()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -216,7 +216,7 @@ public class ChannelMediatorTests
         var notification = new TestNotification("unregistered");
 
         // Act & Assert - Should not throw
-        await mediator.PublishAsync(notification);
+        await mediator.Publish(notification);
     }
 
     [Fact]
@@ -226,7 +226,7 @@ public class ChannelMediatorTests
         var services = new ServiceCollection();
         services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
         var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>() as ChannelMediator;
+        var mediator = serviceProvider.GetRequiredService<IMediator>() as Mediator;
 
         // Act
         await mediator!.DisposeAsync();
@@ -240,7 +240,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task InvokeAsync_WithMultipleRequests_ProcessesAllInOrder()
+    public async Task Send_WithMultipleRequests_ProcessesAllInOrder()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -253,7 +253,7 @@ public class ChannelMediatorTests
         for (int i = 0; i < 10; i++)
         {
             var request = new TestRequest($"test-{i}");
-            tasks.Add(mediator.InvokeAsync(request).AsTask());
+            tasks.Add(mediator.Send(request));
         }
 
         var results = await Task.WhenAll(tasks);
@@ -267,7 +267,7 @@ public class ChannelMediatorTests
     }
 
     [Fact]
-    public async Task InvokeAsync_WithMultipleRequestTypes_ProcessesCorrectly()
+    public async Task Send_WithMultipleRequestTypes_ProcessesCorrectly()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -276,8 +276,8 @@ public class ChannelMediatorTests
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
         // Act
-        var response1 = await mediator.InvokeAsync(new TestRequest("test"));
-        var response2 = await mediator.InvokeAsync(new AnotherTestRequest(5));
+        var response1 = await mediator.Send(new TestRequest("test"));
+        var response2 = await mediator.Send(new AnotherTestRequest(5));
 
         // Assert
         response1.Result.Should().Be("Handled: test");
@@ -289,7 +289,7 @@ public class ChannelMediatorTests
     {
         // Arrange & Act
         var handler = new RequestHandlerWrapper<TestRequest, TestResponse>(Mock.Of<IServiceProvider>());
-        var mediator = new ChannelMediator(new[] { handler });
+        var mediator = new Mediator(new[] { handler });
 
         // Assert
         mediator.Should().NotBeNull();

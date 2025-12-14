@@ -1,52 +1,51 @@
 ﻿namespace ChannelMediator;
 
+/// <summary>
+/// Defines a mediator to encapsulate request/response and publishing interaction patterns.
+/// Compatible with MediatR interface signatures.
+/// </summary>
 public interface IMediator
 {
 	/// <summary>
-	/// Sends a request to a single handler and returns the response.
-	/// This is the core method used internally.
+	/// Asynchronously send a request to a single handler.
 	/// </summary>
-	ValueTask<TResponse> InvokeAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
-
-	/// <summary>
-	/// Sends a request to a single handler without returning a value.
-	/// This is the core method used internally for commands.
-	/// </summary>
-	ValueTask InvokeAsync(IRequest request, CancellationToken cancellationToken = default);
-
-	/// <summary>
-	/// Publishes a notification to multiple handlers.
-	/// This is the core method used internally.
-	/// </summary>
-	ValueTask PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
-
-	/// <summary>
-	/// Sends a request to a single handler and returns the response.
-	/// MediatR-compatible method that internally calls InvokeAsync.
-	/// </summary>
+	/// <typeparam name="TResponse">Response type</typeparam>
+	/// <param name="request">Request object</param>
+	/// <param name="cancellationToken">Optional cancellation token</param>
+	/// <returns>A task that represents the send operation. The task result contains the handler response.</returns>
 	Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default);
 
 	/// <summary>
-	/// Sends a request to a single handler without returning a value.
-	/// MediatR-compatible method that internally calls InvokeAsync.
+	/// Asynchronously send a request to a single handler without a response.
 	/// </summary>
+	/// <param name="request">Request object</param>
+	/// <param name="cancellationToken">Optional cancellation token</param>
+	/// <returns>A task that represents the send operation.</returns>
 	Task Send(IRequest request, CancellationToken cancellationToken = default);
 
 	/// <summary>
-	/// Publishes a notification to multiple handlers.
-	/// MediatR-compatible method that internally calls PublishAsync.
+	/// Asynchronously send a request to a single handler.
 	/// </summary>
+	/// <param name="request">Request object</param>
+	/// <param name="cancellationToken">Optional cancellation token</param>
+	/// <returns>A task that represents the send operation. The task result contains the handler response.</returns>
+	Task<object?> Send(object request, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Asynchronously send a notification to multiple handlers.
+	/// </summary>
+	/// <typeparam name="TNotification">Notification type</typeparam>
+	/// <param name="notification">Notification object</param>
+	/// <param name="cancellationToken">Optional cancellation token</param>
+	/// <returns>A task that represents the publish operation.</returns>
 	Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
 
 	/// <summary>
-	/// Sends a request to a single handler and returns the response as an object.
-	/// This method accepts a non-generic request object and returns the response boxed as object.
+	/// Asynchronously send a notification to multiple handlers.
 	/// </summary>
-	Task<object?> InvokeAsync(object request, CancellationToken cancellationToken = default);
-
-	/// <summary>
-	/// Sends a request to a single handler and returns the response as an object.
-	/// MediatR-compatible method that internally calls InvokeAsync.
-	/// </summary>
-	Task<object?> Send(object request, CancellationToken cancellationToken = default);
+	/// <param name="notification">Notification object</param>
+	/// <param name="cancellationToken">Optional cancellation token</param>
+	/// <returns>A task that represents the publish operation.</returns>
+	Task Publish(object notification, CancellationToken cancellationToken = default);
 }
+

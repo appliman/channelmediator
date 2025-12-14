@@ -14,6 +14,11 @@ public class PerfHandler : IRequestHandler<PerfRequest, PerfResponse>
     {
         return ValueTask.FromResult(new PerfResponse(request.Payload.Length));
     }
+
+    public async Task<PerfResponse> Handle(PerfRequest request, CancellationToken cancellationToken)
+    {
+        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 [MemoryDiagnoser]
@@ -58,7 +63,7 @@ public class MediatorBenchmarks
                 {
                     var payload = new byte[_messageSize];
                     var request = new PerfRequest(payload);
-                    var res = await _mediator.InvokeAsync(request).ConfigureAwait(false);
+                    var res = await _mediator.Send(request).ConfigureAwait(false);
                     if (res.Length != _messageSize) throw new InvalidOperationException("Invalid response");
                 }
             }));

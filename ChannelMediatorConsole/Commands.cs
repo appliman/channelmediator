@@ -12,6 +12,11 @@ public class LogOrderCommandHandler : IRequestHandler<LogOrderCommand>
 		Console.WriteLine($"[LogOrderCommandHandler] Logging order {command.OrderId} with amount {command.Amount:C}");
 		return ValueTask.CompletedTask;
 	}
+
+	public async Task Handle(LogOrderCommand command, CancellationToken cancellationToken)
+	{
+		await HandleAsync(command, cancellationToken).ConfigureAwait(false);
+	}
 }
 
 public record SendEmailCommand(string To, string Subject, string Body) : IRequest;
@@ -25,5 +30,10 @@ public class SendEmailCommandHandler : IRequestHandler<SendEmailCommand>
 		Console.WriteLine($"  Body: {command.Body}");
 		await Task.Delay(100, cancellationToken); // Simulate email sending
 		Console.WriteLine($"[SendEmailCommandHandler] Email sent successfully!");
+	}
+
+	public async Task Handle(SendEmailCommand command, CancellationToken cancellationToken)
+	{
+		await HandleAsync(command, cancellationToken).ConfigureAwait(false);
 	}
 }

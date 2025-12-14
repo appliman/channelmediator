@@ -6,7 +6,7 @@ namespace ChannelMediator.Tests;
 public class ObjectRequestTests
 {
 	[Fact]
-	public async Task InvokeAsync_WithObjectRequest_ReturnsExpectedResponse()
+	public async Task Send_WithObjectRequest_ReturnsExpectedResponse()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -17,7 +17,7 @@ public class ObjectRequestTests
 		object request = new TestRequest("test-object");
 
 		// Act
-		var response = await mediator.InvokeAsync(request);
+		var response = await mediator.Send(request);
 
 		// Assert
 		response.Should().NotBeNull();
@@ -26,7 +26,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task Send_WithObjectRequest_ReturnsExpectedResponse()
+	public async Task Send_WithAnotherObjectRequest_ReturnsExpectedResponse()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -46,7 +46,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithObjectCommand_ReturnsNull()
+	public async Task Send_WithObjectCommand_ReturnsNull()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -58,7 +58,7 @@ public class ObjectRequestTests
 		object command = new TestCommand("test-command");
 
 		// Act
-		var response = await mediator.InvokeAsync(command);
+		var response = await mediator.Send(command);
 
 		// Assert
 		response.Should().BeNull();
@@ -66,7 +66,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task Send_WithObjectCommand_ReturnsNull()
+	public async Task Send_WithAnotherObjectCommand_ReturnsNull()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -86,20 +86,6 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithNullObjectRequest_ThrowsArgumentNullException()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
-		var serviceProvider = services.BuildServiceProvider();
-		var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-		// Act & Assert
-		await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-			await mediator.InvokeAsync((object)null!));
-	}
-
-	[Fact]
 	public async Task Send_WithNullObjectRequest_ThrowsArgumentNullException()
 	{
 		// Arrange
@@ -114,7 +100,21 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithInvalidObjectType_ThrowsArgumentException()
+	public async Task Send_WithAnotherNullObjectRequest_ThrowsArgumentNullException()
+	{
+		// Arrange
+		var services = new ServiceCollection();
+		services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
+		var serviceProvider = services.BuildServiceProvider();
+		var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+		// Act & Assert
+		await Assert.ThrowsAsync<ArgumentNullException>(async () =>
+			await mediator.Send((object)null!));
+	}
+
+	[Fact]
+	public async Task Send_WithInvalidObjectType_ThrowsArgumentException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -126,12 +126,12 @@ public class ObjectRequestTests
 
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
-			await mediator.InvokeAsync(invalidRequest));
+			await mediator.Send(invalidRequest));
 		exception.Message.Should().Contain("does not implement IRequest");
 	}
 
 	[Fact]
-	public async Task Send_WithInvalidObjectType_ThrowsArgumentException()
+	public async Task Send_WithAnotherInvalidObjectType_ThrowsArgumentException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -148,7 +148,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithObjectRequestWithIntResponse_ReturnsExpectedResponse()
+	public async Task Send_WithObjectRequestWithIntResponse_ReturnsExpectedResponse()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -159,7 +159,7 @@ public class ObjectRequestTests
 		object request = new AnotherTestRequest(42);
 
 		// Act
-		var response = await mediator.InvokeAsync(request);
+		var response = await mediator.Send(request);
 
 		// Assert
 		response.Should().NotBeNull();
@@ -167,7 +167,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task Send_WithObjectRequestWithIntResponse_ReturnsExpectedResponse()
+	public async Task Send_WithAnotherObjectRequestWithIntResponse_ReturnsExpectedResponse()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -183,24 +183,6 @@ public class ObjectRequestTests
 		// Assert
 		response.Should().NotBeNull();
 		response.Should().Be(20);
-	}
-
-	[Fact]
-	public async Task InvokeAsync_WithObjectRequestAndCancellation_ThrowsOperationCanceledException()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
-		var serviceProvider = services.BuildServiceProvider();
-		var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-		object request = new TestRequest("test");
-		var cts = new CancellationTokenSource();
-		cts.Cancel();
-
-		// Act & Assert
-		await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-			await mediator.InvokeAsync(request, cts.Token));
 	}
 
 	[Fact]
@@ -222,7 +204,25 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithMultipleObjectRequests_ProcessesAllCorrectly()
+	public async Task Send_WithAnotherObjectRequestAndCancellation_ThrowsOperationCanceledException()
+	{
+		// Arrange
+		var services = new ServiceCollection();
+		services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
+		var serviceProvider = services.BuildServiceProvider();
+		var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+		object request = new TestRequest("test");
+		var cts = new CancellationTokenSource();
+		cts.Cancel();
+
+		// Act & Assert
+		await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+			await mediator.Send(request, cts.Token));
+	}
+
+	[Fact]
+	public async Task Send_WithMultipleObjectRequests_ProcessesAllCorrectly()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -235,7 +235,7 @@ public class ObjectRequestTests
 		for (int i = 0; i < 10; i++)
 		{
 			object request = new TestRequest($"test-{i}");
-			tasks.Add(mediator.InvokeAsync(request));
+			tasks.Add(mediator.Send(request));
 		}
 
 		var results = await Task.WhenAll(tasks);
@@ -250,7 +250,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task Send_WithMultipleObjectRequests_ProcessesAllCorrectly()
+	public async Task Send_WithAnotherMultipleObjectRequests_ProcessesAllCorrectly()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -278,7 +278,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithMixedObjectRequestTypes_ProcessesCorrectly()
+	public async Task Send_WithMixedObjectRequestTypes_ProcessesCorrectly()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -293,9 +293,9 @@ public class ObjectRequestTests
 		object request2 = new AnotherTestRequest(15);
 		object command = new TestCommand("cmd1");
 
-		var response1 = await mediator.InvokeAsync(request1);
-		var response2 = await mediator.InvokeAsync(request2);
-		var response3 = await mediator.InvokeAsync(command);
+		var response1 = await mediator.Send(request1);
+		var response2 = await mediator.Send(request2);
+		var response3 = await mediator.Send(command);
 
 		await Task.Delay(50); // Give time for command processing
 
@@ -310,7 +310,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task Send_WithMixedObjectRequestTypes_ProcessesCorrectly()
+	public async Task Send_WithAnotherMixedObjectRequestTypes_ProcessesCorrectly()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -342,7 +342,7 @@ public class ObjectRequestTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithFailingObjectRequest_ThrowsException()
+	public async Task Send_WithFailingObjectRequest_ThrowsException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -354,12 +354,12 @@ public class ObjectRequestTests
 
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			await mediator.InvokeAsync(request));
+			await mediator.Send(request));
 		exception.Message.Should().Be("Handler failed");
 	}
 
 	[Fact]
-	public async Task Send_WithFailingObjectRequest_ThrowsException()
+	public async Task Send_WithAnotherFailingObjectRequest_ThrowsException()
 	{
 		// Arrange
 		var services = new ServiceCollection();

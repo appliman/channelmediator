@@ -27,4 +27,9 @@ public sealed class AddToCartHandler : IRequestHandler<AddToCartRequest, CartIte
 
 		return cartItem;
 	}
+
+	public async Task<CartItem> Handle(AddToCartRequest request, CancellationToken cancellationToken)
+	{
+		return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+	}
 }

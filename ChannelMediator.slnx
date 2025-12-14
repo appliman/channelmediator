@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path=".azure-pipelines/workflows/azure-pipeline.yml" />
+    <File Path=".azure-pipelines/workflows/channelmediator-publish.yml" />
     <File Path="CODE_EXAMPLES.md" />
     <File Path="MEDIATR_COMPATIBILITY.md" />
     <File Path="PIPELINE_BEHAVIORS.md" />

@@ -10,6 +10,11 @@ public class TestRequestHandler : IRequestHandler<TestRequest, TestResponse>
     {
         return ValueTask.FromResult(new TestResponse($"Handled: {request.Value}"));
     }
+
+    public async Task<TestResponse> Handle(TestRequest request, CancellationToken cancellationToken)
+    {
+        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 public record AnotherTestRequest(int Number) : IRequest<int>;
@@ -19,6 +24,11 @@ public class AnotherTestRequestHandler : IRequestHandler<AnotherTestRequest, int
     public ValueTask<int> HandleAsync(AnotherTestRequest request, CancellationToken cancellationToken)
     {
         return ValueTask.FromResult(request.Number * 2);
+    }
+
+    public async Task<int> Handle(AnotherTestRequest request, CancellationToken cancellationToken)
+    {
+        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -30,6 +40,11 @@ public class FailingRequestHandler : IRequestHandler<FailingRequest, string>
     {
         throw new InvalidOperationException("Handler failed");
     }
+
+    public async Task<string> Handle(FailingRequest request, CancellationToken cancellationToken)
+    {
+        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 public record TestNotification(string Message) : INotification;
@@ -38,10 +53,10 @@ public class TestNotificationHandler1 : INotificationHandler<TestNotification>
 {
     public List<string> HandledMessages { get; } = new();
 
-    public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+    public Task Handle(TestNotification notification, CancellationToken cancellationToken)
     {
         HandledMessages.Add($"Handler1: {notification.Message}");
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 }
 
@@ -49,10 +64,10 @@ public class TestNotificationHandler2 : INotificationHandler<TestNotification>
 {
     public List<string> HandledMessages { get; } = new();
 
-    public ValueTask HandleAsync(TestNotification notification, CancellationToken cancellationToken)
+    public Task Handle(TestNotification notification, CancellationToken cancellationToken)
     {
         HandledMessages.Add($"Handler2: {notification.Message}");
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 }
 
@@ -118,6 +133,11 @@ public class TestCommandHandler : IRequestHandler<TestCommand>
         ExecutedValues.Add(request.Value);
         return ValueTask.CompletedTask;
     }
+
+    public async Task Handle(TestCommand request, CancellationToken cancellationToken)
+    {
+        await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+    }
 }
 
 public record FailingCommand : IRequest;
@@ -127,5 +147,10 @@ public class FailingCommandHandler : IRequestHandler<FailingCommand>
     public ValueTask HandleAsync(FailingCommand request, CancellationToken cancellationToken)
     {
         throw new InvalidOperationException("Command handler failed");
+    }
+
+    public async Task Handle(FailingCommand request, CancellationToken cancellationToken)
+    {
+        await HandleAsync(request, cancellationToken).ConfigureAwait(false);
     }
 }

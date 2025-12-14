@@ -19,7 +19,8 @@ public static class ServiceCollectionExtensions
 		RegisterHandlers(services, assembliesToScan);
 		RegisterNotificationHandlers(services, assembliesToScan);
 
-		services.AddSingleton<IMediator>(sp =>
+		// Register the factory first (singleton) - shared configuration
+		services.AddSingleton<IMediatorFactory>(sp =>
 		{
 			var wrappers = sp.GetServices<IRequestHandlerWrapper>();
 			var handlers = wrappers.ToDictionary(w => w.RequestType);
@@ -27,7 +28,14 @@ public static class ServiceCollectionExtensions
 			var notificationWrappers = sp.GetServices<INotificationHandlerWrapper>();
 			var notificationHandlers = notificationWrappers.ToDictionary(w => w.NotificationType);
 
-			return new ChannelMediator(handlers, notificationHandlers, sp, notificationConfig);
+			return new MediatorFactory(handlers, notificationHandlers, sp, notificationConfig);
+		});
+
+		// Register IMediator using the factory (transient to avoid deadlocks with nested calls)
+		services.AddTransient(sp =>
+		{
+			var factory = sp.GetRequiredService<IMediatorFactory>();
+			return factory.CreateMediator();
 		});
 
 		return services;
@@ -90,17 +98,20 @@ public static class ServiceCollectionExtensions
 	private static void RegisterHandlers(IServiceCollection services, Assembly[] assemblies)
 	{
 		var handlerInterfaceType = typeof(IRequestHandler<,>);
+		var commandHandlerInterfaceType = typeof(IRequestHandler<>);
 
 		foreach (var assembly in assemblies)
 		{
 			var handlerTypes = assembly.GetTypes()
 				.Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition)
 				.Where(t => t.GetInterfaces().Any(i =>
-					i.IsGenericType && i.GetGenericTypeDefinition() == handlerInterfaceType))
+					(i.IsGenericType && i.GetGenericTypeDefinition() == handlerInterfaceType) ||
+					(i.IsGenericType && i.GetGenericTypeDefinition() == commandHandlerInterfaceType)))
 				.ToList();
 
 			foreach (var handlerType in handlerTypes)
 			{
+				// Register IRequestHandler<TRequest, TResponse> handlers
 				var handlerInterfaces = handlerType.GetInterfaces()
 					.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == handlerInterfaceType)
 					.ToList();
@@ -118,6 +129,32 @@ public static class ServiceCollectionExtensions
 					{
                         return ActivatorUtilities.CreateInstance(sp, wrapperType);
                     });
+				}
+
+				// Register IRequestHandler<TRequest> handlers (commands without response)
+				var commandHandlerInterfaces = handlerType.GetInterfaces()
+					.Where(i => i.IsGenericType && 
+					           i.GetGenericTypeDefinition() == commandHandlerInterfaceType &&
+					           !handlerInterfaces.Any(h => h.GetGenericArguments()[0] == i.GetGenericArguments()[0]))
+					.ToList();
+
+				foreach (var commandHandlerInterface in commandHandlerInterfaces)
+				{
+					var requestType = commandHandlerInterface.GetGenericArguments()[0];
+					var responseType = typeof(Unit);
+
+					// Register the command handler interface
+					services.AddScoped(commandHandlerInterface, handlerType);
+
+					// Also register as IRequestHandler<TRequest, Unit> for consistency
+					var genericHandlerInterface = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
+					
+					// Create a wrapper that bridges IRequestHandler<TRequest> to IRequestHandler<TRequest, Unit>
+					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
+					services.AddSingleton(typeof(IRequestHandlerWrapper), sp =>
+					{
+						return ActivatorUtilities.CreateInstance(sp, wrapperType);
+					});
 				}
 			}
 		}

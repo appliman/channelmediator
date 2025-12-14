@@ -6,7 +6,7 @@ namespace ChannelMediator.Tests;
 public class CommandHandlerTests
 {
 	[Fact]
-	public async Task InvokeAsync_WithCommand_ExecutesSuccessfully()
+	public async Task Send_WithCommand_ExecutesSuccessfully()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -17,14 +17,14 @@ public class CommandHandlerTests
 		var command = new TestCommand("test-value");
 
 		// Act
-		await mediator.InvokeAsync(command);
+		await mediator.Send(command);
 
 		// Assert - Command should execute without throwing
 		TestCommandHandler.LastExecutedValue.Should().Be("test-value");
 	}
 
 	[Fact]
-	public async Task Send_WithCommand_ExecutesSuccessfully()
+	public async Task Send_WithAnotherCommand_ExecutesSuccessfully()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -42,7 +42,7 @@ public class CommandHandlerTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithNullCommand_ThrowsArgumentNullException()
+	public async Task Send_WithNullCommand_ThrowsArgumentNullException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -52,11 +52,11 @@ public class CommandHandlerTests
 
 		// Act & Assert
 		await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-			await mediator.InvokeAsync(null!));
+			await mediator.Send((IRequest)null!));
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithFailingCommand_ThrowsException()
+	public async Task Send_WithFailingCommand_ThrowsException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -68,12 +68,12 @@ public class CommandHandlerTests
 
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-			await mediator.InvokeAsync(command));
+			await mediator.Send(command));
 		exception.Message.Should().Be("Command handler failed");
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithCommandAndCancellation_ThrowsOperationCanceledException()
+	public async Task Send_WithCommandAndCancellation_ThrowsOperationCanceledException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -87,11 +87,11 @@ public class CommandHandlerTests
 
 		// Act & Assert
 		await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-			await mediator.InvokeAsync(command, cts.Token));
+			await mediator.Send(command, cts.Token));
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithMultipleCommands_ExecutesAllInOrder()
+	public async Task Send_WithMultipleCommands_ExecutesAllInOrder()
 	{
 		// Arrange
 		var services = new ServiceCollection();
@@ -106,7 +106,7 @@ public class CommandHandlerTests
 		for (int i = 0; i < 10; i++)
 		{
 			var command = new TestCommand($"cmd-{i}");
-			tasks.Add(mediator.InvokeAsync(command).AsTask());
+			tasks.Add(mediator.Send(command));
 		}
 
 		await Task.WhenAll(tasks);
@@ -119,7 +119,7 @@ public class CommandHandlerTests
 	}
 
 	[Fact]
-	public async Task InvokeAsync_WithCommandAndBehavior_ExecutesBehavior()
+	public async Task Send_WithCommandAndBehavior_ExecutesBehavior()
 	{
 		// Arrange
 		var loggingBehavior = new LoggingBehavior<TestCommand, Unit>();
@@ -132,7 +132,7 @@ public class CommandHandlerTests
 		var command = new TestCommand("test");
 
 		// Act
-		await mediator.InvokeAsync(command);
+		await mediator.Send(command);
 		await Task.Delay(50);
 
 		// Assert
@@ -141,7 +141,7 @@ public class CommandHandlerTests
 	}
 
 	[Fact]
-	public async Task Send_WithCommandAndBehavior_ExecutesBehavior()
+	public async Task Send_WithValidationBehavior_ExecutesBehavior()
 	{
 		// Arrange
 		var validationBehavior = new ValidationBehavior<TestCommand, Unit>();
@@ -174,7 +174,7 @@ public class CommandHandlerTests
 		var tasks = new List<Task>();
 		for (int i = 0; i < 5; i++)
 		{
-			tasks.Add(mediator.InvokeAsync(new TestCommand($"cmd-{i}")).AsTask());
+			tasks.Add(mediator.Send(new TestCommand($"cmd-{i}")));
 			tasks.Add(mediator.Send(new TestRequest($"req-{i}")).ContinueWith(_ => { }));
 		}
 

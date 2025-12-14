@@ -134,7 +134,7 @@ public class IntegrationTests
         var services = new ServiceCollection();
         services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
         var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>() as ChannelMediator;
+        var mediator = serviceProvider.GetRequiredService<IMediator>() as Mediator;
 
         // Act
         var response = await mediator!.Send(new TestRequest("before dispose"));

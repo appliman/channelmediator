@@ -1,0 +1,98 @@
+﻿trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - ChannelMediator/**
+      - ChannelMediator.Contracts/**
+      - ChannelMediator.Tests/**
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Debug'
+  dotnetVersion: '10.x'
+
+stages:
+  - stage: Build
+    displayName: 'Build and Test'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'Build and Run Tests'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET 10'
+            inputs:
+              packageType: 'sdk'
+              version: '$(dotnetVersion)'
+
+          - task: NuGetAuthenticate@1
+            displayName: 'Authenticate to Azure Artifacts'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Restore packages'
+            inputs:
+              command: 'restore'
+              projects: '**/*.csproj'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Build solution'
+            inputs:
+              command: 'build'
+              projects: '**/*.csproj'
+              arguments: '--configuration $(buildConfiguration) --no-restore'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Run tests'
+            inputs:
+              command: 'test'
+              projects: '**/*Tests.csproj'
+              arguments: '--configuration $(buildConfiguration) --no-build --verbosity normal'
+
+  - stage: Pack
+    displayName: 'Pack and Publish NuGet Packages'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: PackNuGet
+        displayName: 'Create NuGet Packages'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET 10'
+            inputs:
+              packageType: 'sdk'
+              version: '$(dotnetVersion)'
+
+          - task: NuGetAuthenticate@1
+            displayName: 'Authenticate to Azure Artifacts'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Restore packages'
+            inputs:
+              command: 'restore'
+              projects: '**/*.csproj'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Pack ChannelMediator.Contracts'
+            inputs:
+              command: 'pack'
+              packagesToPack: 'ChannelMediator.Contracts/ChannelMediator.Contracts.csproj'
+              configuration: '$(buildConfiguration)'
+              outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Pack ChannelMediator'
+            inputs:
+              command: 'pack'
+              packagesToPack: 'ChannelMediator/ChannelMediator.csproj'
+              configuration: '$(buildConfiguration)'
+              outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish NuGet packages to Appliman artifact'
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)/nuget'
+              artifact: 'appliman'
+              publishLocation: 'pipeline'
