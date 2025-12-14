@@ -95,9 +95,10 @@ stages:
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
-          - task: PublishPipelineArtifact@1
-            displayName: 'Publish NuGet packages to Appliman artifact'
+          - task: DotNetCoreCLI@2
+            displayName: "NuGet push"
             inputs:
-              targetPath: '$(Build.ArtifactStagingDirectory)/nuget'
-              artifact: 'appliman'
-              publishLocation: 'pipeline'
+              command: 'push'
+              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+            publishVstsFeed: 'appliman'
+            allowPackageConflicts: true
