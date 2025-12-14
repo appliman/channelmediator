@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+		<TargetFrameworks>net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+		<Version>1.0.1.0</Version>
+  </PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+		<Content Include="$(OutputPath)\ChannelMediator.Contracts.dll">
+			<BuildAction>None</BuildAction>
+			<PackagePath>lib\net9.0</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<Content Include="$(OutputPath)\ChannelMediator.dll">
+			<BuildAction>None</BuildAction>
+			<PackagePath>lib\net9.0</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.11" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+		<Content Include="$(OutputPath)\ChannelMediator.Contracts.dll">
+			<BuildAction>None</BuildAction>
+			<PackagePath>lib\net10.0</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<Content Include="$(OutputPath)\ChannelMediator.dll">
+			<BuildAction>None</BuildAction>
+			<PackagePath>lib\net10.0</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+		<PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="AzureServiceBusHostedService.cs" />
+	  <Compile Remove="AzureServiceBusListener.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ChannelMediator\ChannelMediator.csproj" />
+	</ItemGroup>
+
+</Project>

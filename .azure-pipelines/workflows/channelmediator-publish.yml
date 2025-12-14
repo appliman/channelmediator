@@ -96,6 +96,14 @@ stages:
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
           - task: DotNetCoreCLI@2
+            displayName: 'Pack ChannelMediator.AzureBus'
+            inputs:
+              command: 'pack'
+              packagesToPack: 'ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj'
+              configuration: '$(buildConfiguration)'
+              outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
+
+          - task: DotNetCoreCLI@2
             displayName: "NuGet push"
             inputs:
               command: 'push'
