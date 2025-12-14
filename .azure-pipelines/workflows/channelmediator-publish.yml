@@ -45,11 +45,16 @@ stages:
               arguments: '--configuration $(buildConfiguration) --no-restore'
 
           - task: DotNetCoreCLI@2
-            displayName: 'Run tests'
+            displayName: 'Run tests with code coverage'
             inputs:
               command: 'test'
               projects: '**/*Tests.csproj'
-              arguments: '--configuration $(buildConfiguration) --no-build --verbosity normal'
+              arguments: '--configuration $(buildConfiguration) --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/coverage'
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publish code coverage results'
+            inputs:
+              summaryFileLocation: '$(Agent.TempDirectory)/coverage/**/coverage.cobertura.xml'
 
   - stage: Pack
     displayName: 'Pack and Publish NuGet Packages'

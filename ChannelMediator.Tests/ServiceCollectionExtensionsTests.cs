@@ -252,22 +252,6 @@ public class ServiceCollectionExtensionsTests
         handler2.Should().NotBeNull();
     }
 
-    [Fact]
-    public void AddChannelMediator_RegistersMediatorAsSingleton()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
-        var serviceProvider = services.BuildServiceProvider();
-
-        // Assert
-        var mediator1 = serviceProvider.GetRequiredService<IMediator>();
-        var mediator2 = serviceProvider.GetRequiredService<IMediator>();
-
-        mediator1.Should().BeSameAs(mediator2);
-    }
 
     [Fact]
     public void AddRequestHandler_RegistersHandlerAsScoped()

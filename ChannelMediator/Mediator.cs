@@ -338,8 +338,15 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
         }
     }
 
+	private int _disposed;
+
 	public void Dispose()
 	{
+		if (Interlocked.Exchange(ref _disposed, 1) == 1)
+		{
+			return;
+		}
+
 		_channel.Writer.TryComplete();
 		_cts.Cancel();
 
@@ -357,6 +364,11 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 	public async ValueTask DisposeAsync()
 	{
+		if (Interlocked.Exchange(ref _disposed, 1) == 1)
+		{
+			return;
+		}
+
 		_channel.Writer.TryComplete();
 
 		if (!_cts.IsCancellationRequested)
