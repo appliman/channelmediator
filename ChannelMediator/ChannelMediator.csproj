@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-		<Version>1.0.2.0</Version>
+		<Version>1.0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,5 +14,13 @@
   <ItemGroup>
     <ProjectReference Include="..\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<Content Include="$(OutputPath)\ChannelMediator.Contracts.dll">
+			<BuildAction>None</BuildAction>
+			<PackagePath>lib\net10.0</PackagePath>
+			<Pack>true</Pack>
+		</Content>
+	</ItemGroup>
 
 </Project>
