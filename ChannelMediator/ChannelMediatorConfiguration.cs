@@ -1,12 +1,8 @@
 ﻿namespace ChannelMediator;
 
-public enum NotificationPublishStrategy
+public class ChannelMediatorConfiguration
 {
-    Sequential,
-    Parallel
-}
-
-public class NotificationPublisherConfiguration
-{
+    public IServiceCollection Services { get; set; } = default!;
     public NotificationPublishStrategy Strategy { get; set; } = NotificationPublishStrategy.Sequential;
+
 }

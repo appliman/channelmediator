@@ -6,14 +6,16 @@ public static class ServiceCollectionExtensions
 {
 	public static IServiceCollection AddChannelMediator(
 		this IServiceCollection services,
-		Action<NotificationPublisherConfiguration>? configureNotifications = null,
+		Action<ChannelMediatorConfiguration>? configureNotifications = null,
 		params Assembly[] assemblies)
 	{
 		var assembliesToScan = assemblies.Length > 0
 			? assemblies
 			: new[] { Assembly.GetCallingAssembly() };
 
-		var notificationConfig = new NotificationPublisherConfiguration();
+		var notificationConfig = new ChannelMediatorConfiguration();
+		// Ensure Services is available to the configuration action so it can register services (e.g., Azure Service Bus)
+		notificationConfig.Services = services;
 		configureNotifications?.Invoke(notificationConfig);
 
 		RegisterHandlers(services, assembliesToScan);
@@ -127,8 +129,8 @@ public static class ServiceCollectionExtensions
 					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
 					services.AddSingleton(typeof(IRequestHandlerWrapper), sp =>
 					{
-                        return ActivatorUtilities.CreateInstance(sp, wrapperType);
-                    });
+						return ActivatorUtilities.CreateInstance(sp, wrapperType);
+					});
 				}
 
 				// Register IRequestHandler<TRequest> handlers (commands without response)
@@ -194,8 +196,8 @@ public static class ServiceCollectionExtensions
 			var wrapperType = typeof(NotificationHandlerWrapper<>).MakeGenericType(notificationType);
 			services.AddSingleton(typeof(INotificationHandlerWrapper), sp =>
 			{
-                return ActivatorUtilities.CreateInstance(sp, wrapperType);
-            });
+				return ActivatorUtilities.CreateInstance(sp, wrapperType);
+			});
 		}
 	}
 }

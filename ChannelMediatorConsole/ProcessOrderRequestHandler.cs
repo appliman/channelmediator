@@ -1,6 +1,6 @@
 ﻿using ChannelMediator;
 
-namespace ChannelMediatorConsole;
+namespace ChannelMediatorSampleConsole;
 
 public record OrderResult(string OrderId, CartItem Item, bool EmailSent, bool Logged);
 
@@ -40,7 +40,7 @@ public class ProcessOrderRequestHandler : IRequestHandler<ProcessOrderRequest, O
 
 		// Step 4: Publish notification (optional - demonstrates event publishing)
 		Console.WriteLine($"[ProcessOrderRequestHandler] Step 4: Publishing notification...");
-		await _mediator.Publish(
+		await _mediator.GlobalPublish(
 			new ProductAddedNotification(cartItem.ProductCode, cartItem.Quantity, cartItem.Total), 
 			cancellationToken);
 

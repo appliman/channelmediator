@@ -1,6 +1,6 @@
 ﻿using ChannelMediator;
 
-namespace ChannelMediatorConsole;
+namespace ChannelMediatorSampleConsole;
 
 public sealed class AddToCartHandler : IRequestHandler<AddToCartRequest, CartItem>
 {

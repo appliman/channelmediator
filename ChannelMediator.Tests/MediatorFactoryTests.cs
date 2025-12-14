@@ -72,7 +72,7 @@ public class MediatorFactoryTests
 		// Arrange
 		var serviceProvider = new ServiceCollection().BuildServiceProvider();
 		var notificationHandlers = new Dictionary<Type, INotificationHandlerWrapper>();
-		var config = new NotificationPublisherConfiguration();
+		var config = new ChannelMediatorConfiguration();
 
 		// Act & Assert
 		Assert.Throws<ArgumentNullException>(() =>
@@ -85,7 +85,7 @@ public class MediatorFactoryTests
 		// Arrange
 		var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
 		var notificationHandlers = new Dictionary<Type, INotificationHandlerWrapper>();
-		var config = new NotificationPublisherConfiguration();
+		var config = new ChannelMediatorConfiguration();
 
 		// Act & Assert
 		Assert.Throws<ArgumentNullException>(() =>
@@ -98,7 +98,7 @@ public class MediatorFactoryTests
 		// Arrange
 		var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
 		var serviceProvider = new ServiceCollection().BuildServiceProvider();
-		var config = new NotificationPublisherConfiguration();
+		var config = new ChannelMediatorConfiguration();
 
 		// Act
 		var factory = new MediatorFactory(handlers, null!, serviceProvider, config);

@@ -1,6 +1,6 @@
 ﻿using ChannelMediator;
 
-namespace ChannelMediatorConsole;
+namespace ChannelMediatorSampleConsole;
 
 // Command without return value (inherits from IRequest instead of IRequest<T>)
 public record LogOrderCommand(string OrderId, decimal Amount) : IRequest;

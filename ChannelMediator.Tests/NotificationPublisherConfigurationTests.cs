@@ -6,7 +6,7 @@ public class NotificationPublisherConfigurationTests
     public void DefaultStrategy_IsSequential()
     {
         // Arrange & Act
-        var config = new NotificationPublisherConfiguration();
+        var config = new ChannelMediatorConfiguration();
 
         // Assert
         config.Strategy.Should().Be(NotificationPublishStrategy.Sequential);
@@ -16,7 +16,7 @@ public class NotificationPublisherConfigurationTests
     public void Strategy_CanBeSetToParallel()
     {
         // Arrange
-        var config = new NotificationPublisherConfiguration();
+        var config = new ChannelMediatorConfiguration();
 
         // Act
         config.Strategy = NotificationPublishStrategy.Parallel;
@@ -29,7 +29,7 @@ public class NotificationPublisherConfigurationTests
     public void Strategy_CanBeSetToSequential()
     {
         // Arrange
-        var config = new NotificationPublisherConfiguration
+        var config = new ChannelMediatorConfiguration
         {
             Strategy = NotificationPublishStrategy.Parallel
         };

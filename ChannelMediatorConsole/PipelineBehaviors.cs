@@ -2,7 +2,7 @@
 
 using ChannelMediator;
 
-namespace ChannelMediatorConsole;
+namespace ChannelMediatorSampleConsole;
 
 public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
 	where TRequest : IRequest<TResponse>

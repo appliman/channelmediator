@@ -8,11 +8,14 @@
     <File Path="README.md" />
     <File Path="SEQUENCE_DIAGRAM.md" />
   </Folder>
+  <Project Path="ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj" Id="732b6c4d-91fa-417e-a6d8-57637a0a5f55" />
   <Project Path="ChannelMediator.Contracts/ChannelMediator.Contracts.csproj" />
   <Project Path="ChannelMediator.Performance/ChannelMediator.Performance.csproj">
     <BuildType Project="Release" />
   </Project>
   <Project Path="ChannelMediator.Tests/ChannelMediator.Tests.csproj" />
   <Project Path="ChannelMediator/ChannelMediator.csproj" />
-  <Project Path="ChannelMediatorConsole/ChannelMediatorConsole.csproj" />
+  <Project Path="ChannelMediatorConsole/ChannelMediatorSampleConsole.csproj" />
+  <Project Path="ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" Id="89670ec7-756b-484c-8a8f-7c115cef3d25" />
+  <Project Path="ChannelMediatorSampleNotificationWriterConsole/ChannelMediatorSampleNotificationWriterConsole.csproj" Id="df64e59c-b7f8-4cba-b342-570bd5d73982" />
 </Solution>

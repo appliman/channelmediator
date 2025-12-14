@@ -5,7 +5,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	private readonly IReadOnlyDictionary<Type, IRequestHandlerWrapper> _handlers;
 	private readonly IReadOnlyDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
 	private readonly IServiceProvider _serviceProvider;
-	private readonly NotificationPublisherConfiguration _notificationConfiguration;
+	private readonly ChannelMediatorConfiguration _notificationConfiguration;
 	private readonly Channel<IRequestEnvelope> _channel;
 	private readonly CancellationTokenSource _cts = new();
 	private readonly Task _pump;
@@ -21,12 +21,12 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		IReadOnlyDictionary<Type, IRequestHandlerWrapper> handlers,
 		IReadOnlyDictionary<Type, INotificationHandlerWrapper>? notificationHandlers = null,
 		IServiceProvider? serviceProvider = null,
-		NotificationPublisherConfiguration? notificationConfiguration = null)
+		ChannelMediatorConfiguration? notificationConfiguration = null)
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
 		_notificationHandlers = notificationHandlers ?? new Dictionary<Type, INotificationHandlerWrapper>();
 		_serviceProvider = serviceProvider!;
-		_notificationConfiguration = notificationConfiguration ?? new NotificationPublisherConfiguration();
+		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 		_channel = Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
 		{
 			SingleReader = true,
