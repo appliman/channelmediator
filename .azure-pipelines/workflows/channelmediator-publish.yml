@@ -95,7 +95,7 @@ stages:
             displayName: 'Pack ChannelMediator.Contracts'
             inputs:
               command: 'pack'
-              packagesToPack: 'ChannelMediator.Contracts/ChannelMediator.Contracts.csproj'
+              packagesToPack: 'src/ChannelMediator.Contracts/ChannelMediator.Contracts.csproj'
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
@@ -103,7 +103,7 @@ stages:
             displayName: 'Pack ChannelMediator'
             inputs:
               command: 'pack'
-              packagesToPack: 'ChannelMediator/ChannelMediator.csproj'
+              packagesToPack: 'src/ChannelMediator/ChannelMediator.csproj'
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
@@ -111,7 +111,7 @@ stages:
             displayName: 'Pack ChannelMediator.AzureBus'
             inputs:
               command: 'pack'
-              packagesToPack: 'ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj'
+              packagesToPack: 'src/ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj'
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
