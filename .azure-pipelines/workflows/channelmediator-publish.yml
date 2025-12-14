@@ -100,5 +100,5 @@ stages:
             inputs:
               command: 'push'
               packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
-            publishVstsFeed: 'appliman'
-            allowPackageConflicts: true
+              publishVstsFeed: 'appliman'
+              allowPackageConflicts: true
