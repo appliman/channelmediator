@@ -7,9 +7,9 @@ namespace ChannelMediator.AzureBus;
 /// </summary>
 internal sealed class GlobalPublisherInitializerHostedService : IHostedService
 {
-    private readonly IGlobalPublisher _globalPublisher;
+    private readonly IAzurePublisher _globalPublisher;
 
-    public GlobalPublisherInitializerHostedService(IGlobalPublisher globalPublisher)
+    public GlobalPublisherInitializerHostedService(IAzurePublisher globalPublisher)
     {
         _globalPublisher = globalPublisher ?? throw new ArgumentNullException(nameof(globalPublisher));
     }

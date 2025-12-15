@@ -2,6 +2,8 @@
 
 using ChannelMediator;
 
+using ChannelMediatorSampleShared;
+
 namespace ChannelMediatorSampleConsole;
 
 public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>

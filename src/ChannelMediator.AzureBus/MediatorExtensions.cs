@@ -7,14 +7,14 @@ namespace ChannelMediator;
 /// </summary>
 public static class MediatorExtensions
 {
-    private static IGlobalPublisher? _globalPublisher;
+    private static IAzurePublisher? _globalPublisher;
     private static readonly object _lock = new();
 
     /// <summary>
     /// Sets the global publisher instance. This is called internally during service configuration.
     /// </summary>
     /// <param name="globalPublisher">The global publisher instance.</param>
-    internal static void SetGlobalPublisher(IGlobalPublisher globalPublisher)
+    internal static void SetGlobalPublisher(IAzurePublisher globalPublisher)
     {
         lock (_lock)
         {
@@ -45,5 +45,53 @@ public static class MediatorExtensions
                 "GlobalPublisher is not configured. Ensure UseAzureServiceBus() has been called during service configuration.");
 
         return publisher.PublishAsync(notification, cancellationToken);
+    }
+
+    /// <summary>
+    /// Enqueues a request for asynchronous processing using the globally configured publisher.
+    /// </summary>
+    /// <param name="mediator">The mediator instance used to dispatch the request. Cannot be null.</param>
+    /// <param name="request">The request object to enqueue. Must implement the IRequest interface. Cannot be null.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the enqueue operation.</param>
+    /// <returns>A task that represents the asynchronous enqueue operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the global publisher is not configured. Ensure UseAzureServiceBus() has been called during service
+    /// configuration.</exception>
+    /// <exception cref="ArgumentException">Thrown if the request object does not implement the IRequest interface.</exception>
+    public static Task EnqueueRequest(this IMediator mediator, object request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(mediator);
+        ArgumentNullException.ThrowIfNull(request);
+        var publisher = _globalPublisher 
+            ?? throw new InvalidOperationException(
+                "GlobalPublisher is not configured. Ensure UseAzureServiceBus() has been called during service configuration.");
+
+        // On verifie que l'objet implémente IRequest<TResponse> ou IRequest
+        if (request is not IRequest)
+        {
+            throw new ArgumentException("The request object must implement only IRequest.", nameof(request));
+        }
+
+        return publisher.EnqueueRequest(request, cancellationToken);
+    }
+
+    /// <summary>
+    /// Enqueues a message to the specified queue using the configured global publisher.
+    /// </summary>
+    /// <param name="mediator">The mediator instance used to access the global publisher. Cannot be null.</param>
+    /// <param name="queueName">The name of the queue to which the message will be enqueued. Cannot be null.</param>
+    /// <param name="message">The message object to enqueue. Cannot be null.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the enqueue operation.</param>
+    /// <returns>A task that represents the asynchronous enqueue operation.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the global publisher is not configured. Ensure that UseAzureServiceBus() has been called during
+    /// service configuration.</exception>
+    public static Task Enqueue(this IMediator mediator, string queueName, object message, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(mediator);
+        ArgumentNullException.ThrowIfNull(queueName);
+        ArgumentNullException.ThrowIfNull(message);
+        var publisher = _globalPublisher 
+            ?? throw new InvalidOperationException(
+                "GlobalPublisher is not configured. Ensure UseAzureServiceBus() has been called during service configuration.");
+        return publisher.Enqueue(queueName, message, cancellationToken);
     }
 }

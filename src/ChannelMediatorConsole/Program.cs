@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
+using ChannelMediatorSampleShared;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -20,7 +21,7 @@ var host = Host.CreateDefaultBuilder(args)
             config.UseAzureServiceBus(opts =>
             {
                 opts.ConnectionString = connectionString!;
-                opts.AddAzureBusTopicReader<ProductAddedNotification>();
+                opts.AddAzureBusTopicNotificationReader<ProductAddedNotification>();
             });
 
         }, Assembly.GetExecutingAssembly());
@@ -66,14 +67,7 @@ Console.WriteLine();
 
 // Test Notification (global) - send to Azure Service Bus if configured
 Console.WriteLine("=== Testing Notification with GlobalPublish (Azure Service Bus) ===");
-if (serviceProvider.GetService<IGlobalPublisher>() is not null)
-{
-    await mediator.GlobalPublish(notification, cancellationToken);
-}
-else
-{
-    await mediator.Publish(notification, cancellationToken);
-}
+await mediator.GlobalPublish(notification, cancellationToken);
 
 Console.WriteLine();
 

@@ -9,7 +9,7 @@ namespace ChannelMediator.AzureBus;
 internal sealed class AzureServiceBusEntityManager
 {
     private readonly ServiceBusAdministrationClient _adminClient;
-    private readonly ConcurrentDictionary<string, bool> _topicsExist = new();
+    private readonly ConcurrentDictionary<string, bool> _queueOrTopicsExist = new();
     private readonly ConcurrentDictionary<string, bool> _subscriptionsExist = new();
 
     /// <summary>
@@ -32,7 +32,7 @@ internal sealed class AzureServiceBusEntityManager
         ArgumentException.ThrowIfNullOrWhiteSpace(topicName);
 
         // Check if we already verified this topic exists (local cache)
-        if (_topicsExist.ContainsKey(topicName))
+        if (_queueOrTopicsExist.ContainsKey(topicName))
         {
             return;
         }
@@ -53,7 +53,32 @@ internal sealed class AzureServiceBusEntityManager
         }
 
         // Mark this topic as verified
-        _topicsExist.TryAdd(topicName, true);
+        _queueOrTopicsExist.TryAdd(topicName, true);
+    }
+
+    public async Task EnsureQueueExistsAsync(string queueName, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(queueName);
+        // Check if we already verified this queue exists (local cache)
+        if (_queueOrTopicsExist.ContainsKey(queueName))
+        {
+            return;
+        }
+        // Check if the queue exists in Azure Service Bus
+        if (!await _adminClient.QueueExistsAsync(queueName, cancellationToken).ConfigureAwait(false))
+        {
+            var queueOptions = new CreateQueueOptions(queueName)
+            {
+                DefaultMessageTimeToLive = TimeSpan.FromDays(1),
+                AutoDeleteOnIdle = TimeSpan.FromDays(1),
+                EnableBatchedOperations = true,
+            };
+            queueOptions.AuthorizationRules.Add(new SharedAccessAuthorizationRule("allClaims"
+                , new[] { AccessRights.Manage, AccessRights.Send, AccessRights.Listen }));
+            await _adminClient.CreateQueueAsync(queueOptions, cancellationToken).ConfigureAwait(false);
+        }
+        // Mark this queue as verified
+        _queueOrTopicsExist.TryAdd(queueName, true);
     }
 
     /// <summary>

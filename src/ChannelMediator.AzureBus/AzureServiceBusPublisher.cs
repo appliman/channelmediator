@@ -7,7 +7,7 @@ namespace ChannelMediator.AzureBus;
 /// <summary>
 /// Azure Service Bus implementation of <see cref="IMessageBusPublisher"/>.
 /// </summary>
-internal sealed class AzureServiceBusPublisher : IGlobalPublisher, IAsyncDisposable
+internal sealed class AzureServiceBusPublisher : IAzurePublisher, IAsyncDisposable
 {
     private readonly ServiceBusClient _client;
     private readonly AzureServiceBusEntityManager _entityManager;
@@ -46,15 +46,33 @@ internal sealed class AzureServiceBusPublisher : IGlobalPublisher, IAsyncDisposa
         {
             queueOrTopicName = $"{_options.Prefix}-{queueOrTopicName}".ToLower();
         }
-        if (_options.CreateTopicIfNotExists)
-        {
-            await _entityManager.EnsureTopicExistsAsync(queueOrTopicName, cancellationToken).ConfigureAwait(false);
-        }
+        await _entityManager.EnsureTopicExistsAsync(queueOrTopicName, cancellationToken).ConfigureAwait(false);
 
         var sender = GetOrCreateSender(queueOrTopicName);
         var message = CreateMessage(notification);
 
         await sender.SendMessageAsync(message, cancellationToken);
+    }
+
+    public async Task EnqueueRequest(object request, CancellationToken cancellationToken = default)
+    {
+        var queueOrTopicName = $"channel-mediator-{request.GetType().Name}".ToLower();
+        if (!string.IsNullOrWhiteSpace(_options.Prefix))
+        {
+            queueOrTopicName = $"{_options.Prefix}-{queueOrTopicName}".ToLower();
+        }
+        await _entityManager.EnsureQueueExistsAsync(queueOrTopicName, cancellationToken).ConfigureAwait(false);
+        var sender = GetOrCreateSender(queueOrTopicName);
+        var message = CreateServiceBusMessage(request);
+        await sender.SendMessageAsync(message, cancellationToken);
+    }
+
+    public async Task Enqueue(string queueName, object message, CancellationToken cancellationToken = default)
+    {
+        await _entityManager.EnsureQueueExistsAsync(queueName, cancellationToken).ConfigureAwait(false);
+        var sender = GetOrCreateSender(queueName);
+        var busmessage = CreateServiceBusMessage(message);
+        await sender.SendMessageAsync(busmessage, cancellationToken);
     }
 
     private ServiceBusSender GetOrCreateSender(string queueOrTopicName)
@@ -65,21 +83,20 @@ internal sealed class AzureServiceBusPublisher : IGlobalPublisher, IAsyncDisposa
     private ServiceBusMessage CreateMessage<TNotification>(TNotification notification)
         where TNotification : INotification
     {
-        var notificationType = notification!.GetType();
-        return CreateServiceBusMessage(notification, notificationType);
+        return CreateServiceBusMessage(notification);
     }
 
-    private ServiceBusMessage CreateServiceBusMessage(object notification, Type notificationType)
+    private ServiceBusMessage CreateServiceBusMessage(object notification)
     {
-        var body = JsonSerializer.SerializeToUtf8Bytes(notification, notificationType, _jsonOptions);
+        var body = JsonSerializer.SerializeToUtf8Bytes(notification, _jsonOptions);
         
         var message = new ServiceBusMessage(body)
         {
             ContentType = "application/json",
-            Subject = notificationType.Name,
+            Subject = notification.GetType().Name,
             ApplicationProperties =
             {
-                ["NotificationType"] = notificationType.AssemblyQualifiedName
+                ["NotificationType"] = notification.GetType().AssemblyQualifiedName
             }
         };
 

@@ -1,6 +1,6 @@
 ﻿using ChannelMediator;
 
-namespace ChannelMediatorSampleConsole;
+namespace ChannelMediatorSampleShared;
 
 /// <summary>
 /// Request to process a complete order (orchestrates multiple operations)
