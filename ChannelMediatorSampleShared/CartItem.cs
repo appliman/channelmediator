@@ -1,3 +1,3 @@
-﻿namespace ChannelMediatorSampleConsole;
+﻿namespace ChannelMediatorSampleShared;
 
 public sealed record CartItem(string ProductCode, int Quantity, decimal Total);

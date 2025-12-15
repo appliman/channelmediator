@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 
+using ChannelMediatorSampleShared;
+
 namespace ChannelMediatorSampleConsole;
 
 public interface IProductCache

@@ -5,6 +5,7 @@
     <Project Path="src\ChannelMediator/ChannelMediator.csproj" />
   </Folder>
   <Folder Name="/2-Samples/">
+    <Project Path="ChannelMediatorSampleShared/ChannelMediatorSampleShared.csproj" Id="837d8cfd-4421-4511-9b80-28c00acb1241" />
     <Project Path="src\ChannelMediatorConsole/ChannelMediatorSampleConsole.csproj" />
     <Project Path="src\ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" Id="89670ec7-756b-484c-8a8f-7c115cef3d25" />
     <Project Path="src\ChannelMediatorSampleNotificationWriterConsole/ChannelMediatorSampleNotificationWriterConsole.csproj" Id="df64e59c-b7f8-4cba-b342-570bd5d73982" />

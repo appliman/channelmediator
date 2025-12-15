@@ -1,5 +1,7 @@
 ﻿using ChannelMediator;
 
+using ChannelMediatorSampleShared;
+
 namespace ChannelMediatorSampleConsole;
 
 public sealed class LogProductAddedHandler : INotificationHandler<ProductAddedNotification>

@@ -1,8 +1,8 @@
 ﻿using ChannelMediator;
 
-namespace ChannelMediatorSampleConsole;
+using ChannelMediatorSampleShared;
 
-public record OrderResult(string OrderId, CartItem Item, bool EmailSent, bool Logged);
+namespace ChannelMediatorSampleConsole;
 
 /// <summary>
 /// Handler that orchestrates multiple requests using IMediator injection

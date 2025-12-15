@@ -1,5 +1,7 @@
 ﻿using ChannelMediator;
 
+using ChannelMediatorSampleShared;
+
 namespace ChannelMediatorSampleNotificationReaderConsole;
 
 public sealed class UpdateInventoryHandler : INotificationHandler<ProductAddedNotification>

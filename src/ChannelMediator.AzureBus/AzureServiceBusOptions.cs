@@ -5,6 +5,10 @@
 /// </summary>
 public sealed class AzureServiceBusOptions
 {
+    internal AzureServiceBusOptions()
+    {
+    }
+
     public ChannelMediatorConfiguration ChannelMediatorConfiguration { get; set; } = default!;
 
 	/// <summary>
@@ -39,10 +43,4 @@ public sealed class AzureServiceBusOptions
     /// Default is 5 minutes.
     /// </summary>
     public TimeSpan MaxAutoLockRenewalDuration { get; set; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to create the topic if it doesn't exist when publishing.
-    /// Default is true.
-    /// </summary>
-    public bool CreateTopicIfNotExists { get; set; } = true;
 }

@@ -1,7 +1,10 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using Azure.Core;
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace ChannelMediator.AzureBus;
 
@@ -65,7 +68,7 @@ public static class ChannelMediatorExtensions
         configuration.Services.TryAddSingleton<AzureServiceBusEntityManager>();
 
         // Register the global publisher
-        configuration.Services.TryAddSingleton<IGlobalPublisher, AzureServiceBusPublisher>();
+        configuration.Services.TryAddSingleton<IAzurePublisher, AzureServiceBusPublisher>();
 
         // Register the initializer hosted service to set up the static accessor
         configuration.Services.TryAddEnumerable(
@@ -85,7 +88,7 @@ public static class ChannelMediatorExtensions
     /// <param name="subscriptionName">The subscription name to read from.</param>
     /// <param name="configure">Action to configure reader options.</param>
     /// <returns>The configuration for chaining.</returns>
-    public static AzureServiceBusOptions AddAzureBusTopicReader<TNotification>(
+    public static AzureServiceBusOptions AddAzureBusTopicNotificationReader<TNotification>(
         this AzureServiceBusOptions options,
         string? topicName = null,
         Action<TopicSubscriptionReaderOptions>? configure = null)
@@ -116,6 +119,58 @@ public static class ChannelMediatorExtensions
         options.ChannelMediatorConfiguration.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, TopicSubscriptionReadersHostedService>());
 
+        return options;
+    }
+
+    public static AzureServiceBusOptions AddAzureQueueRequestReader<TRequest>(
+        this AzureServiceBusOptions options,
+        string? queueName = null,
+        Action<QueueReaderOptions>? configure = null)
+        where TRequest : IRequest
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        queueName ??= typeof(TRequest).Name;
+        queueName = $"channel-mediator-{queueName}".ToLower();
+        if (options.Prefix is not null)
+        {
+            queueName = $"{options.Prefix}-{queueName}".ToLower();
+        }
+        var readerOptions = new QueueReaderOptions
+        {
+            QueueName = queueName,
+            RequestType = typeof(TRequest)
+        };
+        configure?.Invoke(readerOptions);
+
+        // Register the reader options in the registry during service configuration
+        QueueReaderRegistry.Register(readerOptions);
+
+        // Ensure the hosted service is registered (only once)
+        options.ChannelMediatorConfiguration.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, QueueReadersHostedService>());
+        return options;
+    }
+
+    public static AzureServiceBusOptions AddAzureQueueReader<TMessage>(
+        this AzureServiceBusOptions options,
+        string queueName,
+        Func<IMediator, TMessage, Task> handle,
+        Action<QueueReaderOptions>? configure = null)
+    {
+        var readerOptions = new QueueReaderOptions
+        {
+            QueueName = queueName,
+            RequestType = typeof(TMessage),
+            Handler = handle
+        };
+        configure?.Invoke(readerOptions);
+
+        // Register the reader options in the registry during service configuration
+        QueueReaderRegistry.Register(readerOptions);
+
+        // Ensure the hosted service is registered (only once)
+        options.ChannelMediatorConfiguration.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, QueueReadersHostedService>());
         return options;
     }
 }
