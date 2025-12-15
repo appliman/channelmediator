@@ -21,10 +21,15 @@ var host = Host.CreateDefaultBuilder(args)
 				opts.ConnectionString = connectionString!;
 				opts.AddAzureBusTopicNotificationReader<ProductAddedNotification>();
 				opts.AddAzureQueueRequestReader<MyRequest>();
-				opts.AddAzureQueueReader<NotRequest>("my-custom-queue", async (mediator, message) =>
+				opts.AddAzureBusQueueReader<NotRequest>("my-custom-queue", async (mediator, message) =>
 				{
 					// Custom message processing logic here
 					Console.WriteLine($"Custom Queue Reader received message: {message.Value}");
+					await Task.CompletedTask;
+                });
+				opts.AddAzureBusTopicSubscriptionReader<FreeMessage>("my-message-broadcast", System.Environment.MachineName, async (mediator, message) =>
+				{
+                    Console.WriteLine($"Custom Queue Reader received message: {message.Value}");
 					await Task.CompletedTask;
                 });
             });

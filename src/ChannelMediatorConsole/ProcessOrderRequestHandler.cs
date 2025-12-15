@@ -40,7 +40,7 @@ public class ProcessOrderRequestHandler : IRequestHandler<ProcessOrderRequest, O
 
 		// Step 4: Publish notification (optional - demonstrates event publishing)
 		Console.WriteLine($"[ProcessOrderRequestHandler] Step 4: Publishing notification...");
-		await _mediator.GlobalPublish(
+		await _mediator.GlobalNotify(
 			new ProductAddedNotification(cartItem.ProductCode, cartItem.Quantity, cartItem.Total), 
 			cancellationToken);
 

@@ -30,7 +30,7 @@ internal sealed class TopicSubscriptionReadersHostedService : IHostedService, IA
 
         foreach (var options in TopicSubscriptionReaderRegistry.GetAll())
         {
-            var reader = new TopicSubscriptionReader(client, entityManager, options, _serviceProvider);
+            var reader = ActivatorUtilities.CreateInstance<TopicSubscriptionReader>(_serviceProvider, client, entityManager, options, _serviceProvider);
             _readers.Add(reader);
             await reader.StartAsync(cancellationToken).ConfigureAwait(false);
         }

@@ -61,13 +61,13 @@ Console.WriteLine();
 // Test Notification (no response, multiple handlers) - using Publish
 Console.WriteLine("=== Testing Notification with Publish (Parallel) ===");
 var notification = new ProductAddedNotification(cartItem.ProductCode, cartItem.Quantity, cartItem.Total);
-await mediator.GlobalPublish(notification, cancellationToken);
+await mediator.GlobalNotify(notification, cancellationToken);
 
 Console.WriteLine();
 
 // Test Notification (global) - send to Azure Service Bus if configured
 Console.WriteLine("=== Testing Notification with GlobalPublish (Azure Service Bus) ===");
-await mediator.GlobalPublish(notification, cancellationToken);
+await mediator.GlobalNotify(notification, cancellationToken);
 
 Console.WriteLine();
 

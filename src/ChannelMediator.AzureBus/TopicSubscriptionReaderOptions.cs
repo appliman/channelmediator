@@ -22,7 +22,12 @@ public sealed class TopicSubscriptionReaderOptions
     /// <summary>
     /// Gets the notification type this reader handles.
     /// </summary>
-    public required Type NotificationType { get; set; }
+    public required Type MessageType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the handler associated with the current instance.
+    /// </summary>
+    internal object Handler { get; set; } = default!;
 
     /// <summary>
     /// Gets or sets the maximum number of concurrent calls to the message handler.
@@ -41,16 +46,4 @@ public sealed class TopicSubscriptionReaderOptions
     /// Default is 5 minutes.
     /// </summary>
     public TimeSpan MaxAutoLockRenewalDuration { get; set; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to create the topic if it doesn't exist.
-    /// Default is true.
-    /// </summary>
-    public bool CreateTopicIfNotExists { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to create the subscription if it doesn't exist.
-    /// Default is true.
-    /// </summary>
-    public bool CreateSubscriptionIfNotExists { get; set; } = true;
 }

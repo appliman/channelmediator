@@ -34,7 +34,7 @@ public static class MediatorExtensions
     /// <exception cref="InvalidOperationException">
     /// Thrown when Azure Service Bus is not configured or no topic is registered for the notification type.
     /// </exception>
-    public static Task GlobalPublish<TNotification>(this IMediator mediator, TNotification notification, CancellationToken cancellationToken = default)
+    public static Task GlobalNotify<TNotification>(this IMediator mediator, TNotification notification, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         ArgumentNullException.ThrowIfNull(mediator);
@@ -45,6 +45,24 @@ public static class MediatorExtensions
                 "GlobalPublisher is not configured. Ensure UseAzureServiceBus() has been called during service configuration.");
 
         return publisher.PublishAsync(notification, cancellationToken);
+    }
+
+    /// <summary>
+    /// Publishes a message to the specified global topic .
+    /// </summary>
+    /// <param name=""></param>
+    /// <param name="topicName">The name of the topic to which the message will be published. Cannot be null or empty.</param>
+    /// <param name="message">The message object to publish. Cannot be null.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the publish operation.</param>
+    /// <returns>A task that represents the asynchronous publish operation.</returns>
+    /// <exception cref="NotImplementedException">The method is not implemented.</exception>
+    public static Task GlobalPublish(this IMediator mediator, string topicName, object message, CancellationToken cancellationToken = default)
+    {
+        var publisher = _globalPublisher
+            ?? throw new InvalidOperationException(
+                "GlobalPublisher is not configured. Ensure UseAzureServiceBus() has been called during service configuration.");
+
+        return publisher.PublishAsync(topicName, message, cancellationToken);
     }
 
     /// <summary>
