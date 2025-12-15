@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ChannelMediatorSampleShared\ChannelMediatorSampleShared.csproj" />
+    <ProjectReference Include="..\ChannelMediatorSampleShared\ChannelMediatorSampleShared.csproj" />
     <ProjectReference Include="..\ChannelMediator\ChannelMediator.csproj" />
     <ProjectReference Include="..\ChannelMediator.AzureBus\ChannelMediator.AzureBus.csproj" />
   </ItemGroup>

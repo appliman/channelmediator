@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
+    <Folder Include="_temp\" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="_temp\" />
+    <ProjectReference Include="..\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
