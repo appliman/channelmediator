@@ -33,7 +33,7 @@ internal sealed class TopicSubscriptionReaderRegistry
         }
 
         // Also index by notification type for quick lookup
-        _lazyRegistry.Value._readersByNotificationType.TryAdd(options.NotificationType, options);
+        _lazyRegistry.Value._readersByNotificationType.TryAdd(options.MessageType, options);
     }
 
     /// <summary>

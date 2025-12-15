@@ -21,6 +21,15 @@ internal interface IAzurePublisher
         where TNotification : INotification;
 
     /// <summary>
+    /// Asynchronously publishes a message to the specified topic.
+    /// </summary>
+    /// <param name="topicName">The name of the topic to which the message will be published. Cannot be null or empty.</param>
+    /// <param name="message">The message object to publish. Cannot be null.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used to cancel the publish operation.</param>
+    /// <returns>A task that represents the asynchronous publish operation.</returns>
+    Task PublishAsync(string topicName, object message, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Enqueues the specified request for asynchronous processing.
     /// </summary>
     /// <param name="request">The request object to be enqueued. Cannot be null.</param>

@@ -38,5 +38,7 @@ var mediator = app.Services.GetRequiredService<IMediator>();
 await mediator.EnqueueRequest(new MyRequest("enqueue-test"));
 await mediator.Enqueue("my-custom-queue", new NotRequest() { Value = 5 });
 
+await mediator.GlobalPublish("my-message-broadcast", new FreeMessage() { Value = 10 });
+
 Console.WriteLine("Notification published. Press any key to exit.");
 Console.ReadLine();

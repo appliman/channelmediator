@@ -1,4 +1,6 @@
-﻿using Azure.Core;
+﻿using System.Xml.Linq;
+
+using Azure.Core;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
@@ -107,7 +109,7 @@ public static class ChannelMediatorExtensions
         {
             TopicName = topicName,
             SubscriptionName = options.SubscriptionName,
-            NotificationType = typeof(TNotification)
+            MessageType = typeof(TNotification)
         };
 
         configure?.Invoke(readerOptions);
@@ -151,7 +153,31 @@ public static class ChannelMediatorExtensions
         return options;
     }
 
-    public static AzureServiceBusOptions AddAzureQueueReader<TMessage>(
+    public static AzureServiceBusOptions AddAzureBusTopicSubscriptionReader<TMessage>(
+        this AzureServiceBusOptions options,
+        string topicName,
+        string subscriptionName,
+        Func<IMediator, TMessage, Task> handle,
+        Action<TopicSubscriptionReaderOptions>? configure = null)
+    {
+        var topicReaderOptions = new TopicSubscriptionReaderOptions
+        {
+            TopicName = topicName,
+            SubscriptionName = subscriptionName,
+            MessageType = typeof(TMessage),
+            Handler = handle
+        };
+        configure?.Invoke(topicReaderOptions);
+
+        TopicSubscriptionReaderRegistry.Register(topicReaderOptions);
+
+        options.ChannelMediatorConfiguration.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, TopicSubscriptionReadersHostedService>());
+
+        return options;
+    }
+
+    public static AzureServiceBusOptions AddAzureBusQueueReader<TMessage>(
         this AzureServiceBusOptions options,
         string queueName,
         Func<IMediator, TMessage, Task> handle,

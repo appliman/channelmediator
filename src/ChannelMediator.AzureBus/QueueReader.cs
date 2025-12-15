@@ -110,76 +110,94 @@ internal sealed class QueueReader : IAsyncDisposable
 
     private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
     {
-        var requestTypeName = args.Message.ApplicationProperties.TryGetValue("RequestType", out var typeNameObj)
-            ? typeNameObj as string
-            : null;
-
-        if (!string.IsNullOrWhiteSpace(requestTypeName))
+        try
         {
-            await ProcessRequestMessageAsync(requestTypeName, args);
+            var messageTypeName = args.Message.ApplicationProperties.TryGetValue("messagetype", out var typeNameObj)
+                ? typeNameObj as string
+                : null;
+
+            if (string.IsNullOrWhiteSpace(messageTypeName))
+            {
+                _logger.LogWarning("Message received without 'messagetype' property on queue {QueueName}. MessageId: {MessageId}", _options.QueueName, args.Message.MessageId);
+                return;
+            }
+
+            var messageType = Type.GetType(messageTypeName);
+            if (messageType is null)
+            {
+                _logger.LogWarning("Unknown message type '{MessageTypeName}' received on queue {QueueName}. MessageId: {MessageId}", messageTypeName, _options.QueueName, args.Message.MessageId);
+                return;
+            }
+
+            // Verify if this message implements IRequest or IRequest<TResponse>
+            if (!messageType.IsAssignableFrom(typeof(IRequest))
+                && !messageType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
+            {
+                await ProcessRequestWrapperMessageAsync(args.Message).ConfigureAwait(false);
+                return;
+            }
+
+            var request = JsonSerializer.Deserialize(args.Message.Body.ToArray(), messageType, _jsonOptions);
+            if (request is null)
+            {
+                _logger.LogWarning("Failed to deserialize message of type {MessageType} on queue {QueueName}. MessageId: {MessageId}", messageType.FullName, _options.QueueName, args.Message.MessageId);
+                return;
+            }
+
+            var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
+            if (mediator is null)
+            {
+                _logger.LogError("IMediator is not registered in the service provider while processing message {MessageId} on queue {QueueName}.", args.Message.MessageId, _options.QueueName);
+                throw new InvalidOperationException("IMediator is not registered in the service provider.");
+            }
+
+            await mediator.Send(request).ConfigureAwait(false);
         }
-
-        await ProcessRequestWrapperMessageAsync(args.Message);
-    }
-
-    private async Task ProcessRequestMessageAsync(string requestTypeName, ProcessMessageEventArgs args)
-    { 
-        var requestType = Type.GetType(requestTypeName);
-        if (requestType is null)
+        catch (Exception ex)
         {
-            // Log warning: Unknown notification type
-            return;
+            _logger.LogError(ex, "Error processing message on queue {QueueName}. MessageId: {MessageId}", _options.QueueName, args.Message?.MessageId);
+            // swallow or rethrow? Let ServiceBus processor handle based on ReceiveMode; we log and swallow to avoid crashing the processor thread
         }
-
-        // Verify this message is for our expected notification type
-        if (!_options.RequestType.IsAssignableFrom(requestType))
-        {
-            // Log warning: Unexpected notification type for this reader
-            return;
-        }
-
-        var request = JsonSerializer.Deserialize(args.Message.Body.ToArray(), requestType, _jsonOptions);
-        if (request is null)
-        {
-            // Log warning: Failed to deserialize notification
-            return;
-        }
-
-        var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
-        if (mediator is null)
-        {
-            throw new InvalidOperationException("IMediator is not registered in the service provider.");
-        }
-
-        await mediator.Send(request).ConfigureAwait(false);
     }
 
     private async Task ProcessRequestWrapperMessageAsync(ServiceBusReceivedMessage message)
     {
         if (_options.Handler is null)
         {
+            _logger.LogWarning("No handler configured for queue {QueueName}. MessageId: {MessageId}", _options.QueueName, message.MessageId);
             return;
         }
 
         var request = JsonSerializer.Deserialize(message.Body.ToArray(), _options.RequestType, _jsonOptions);
         if (request is null)
         {
-            // Log warning: Failed to deserialize notification
+            _logger.LogWarning("Failed to deserialize wrapper message of type {RequestType} on queue {QueueName}. MessageId: {MessageId}", _options.RequestType.FullName, _options.QueueName, message.MessageId);
             return;
         }
 
         var mediator = _serviceProvider.GetRequiredService<IMediator>();
 
-        // Invoke the handler using reflection to call the generic method
-        var handlerType = _options.Handler.GetType();
-        var invokeMethod = handlerType.GetMethod("Invoke");
-        if (invokeMethod is not null)
+        // Invoke the handler using reflection to call the delegate
+        try
         {
-            var task = invokeMethod.Invoke(_options.Handler, [mediator, request]) as Task;
-            if (task is not null)
+            var handlerType = _options.Handler.GetType();
+            var invokeMethod = handlerType.GetMethod("Invoke");
+            if (invokeMethod is not null)
             {
-                await task.ConfigureAwait(false);
+                var result = invokeMethod.Invoke(_options.Handler, new object[] { mediator, request });
+                if (result is Task task)
+                {
+                    await task.ConfigureAwait(false);
+                }
             }
+            else
+            {
+                _logger.LogError("Handler for queue {QueueName} does not expose an Invoke method. MessageId: {MessageId}", _options.QueueName, message.MessageId);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error invoking handler for message {MessageId} on queue {QueueName}", message.MessageId, _options.QueueName);
         }
     }
 
