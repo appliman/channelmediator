@@ -115,10 +115,26 @@ stages:
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
-          - task: DotNetCoreCLI@2
-            displayName: "NuGet push"
-            inputs:
-              command: 'push'
-              packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
-              publishVstsFeed: 'appliman'
-              allowPackageConflicts: true
+          # - task: DotNetCoreCLI@2
+          #   displayName: "NuGet push"
+          #   inputs:
+          #     command: 'push'
+          #     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+          #     publishVstsFeed: 'appliman'
+          #     allowPackageConflicts: true
+
+          - bash: |
+             set -euo pipefail
+
+             FEED_URL="https://pkgs.dev.azure.com/appliman/_packaging/a8d351f6-ea82-7aa8-a7c0-020494ee512c/nuget/v3/index.json"
+
+             # push tous les .nupkg (hors symbols)
+             find "$(Build.ArtifactStagingDirectory)" -name "*.nupkg" ! -name "*.symbols.nupkg" -print0 \
+                  | while IFS= read -r -d '' pkg; do
+                      echo "Pushing: $pkg"
+                      dotnet nuget push "$pkg" \
+                        --source "$FEED_URL" \
+                        --api-key VSTS \
+                        --skip-duplicate
+                    done
+            displayName: "NuGet push (skip duplicates)"

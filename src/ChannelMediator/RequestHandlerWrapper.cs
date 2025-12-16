@@ -22,7 +22,8 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 		RequestHandlerDelegate<TResponse> handler;
 		
 		// Check if this is a command (IRequest -> IRequest<Unit>)
-		if (typeof(TResponse) == typeof(Unit) && typeof(TRequest).GetInterfaces().Any(i => i == typeof(IRequest)))
+		if (typeof(TResponse) == typeof(Unit) 
+			&& typeof(TRequest).GetInterfaces().Any(i => i == typeof(IRequest)))
 		{
 			// Try to get IRequestHandler<TRequest> first (for commands)
 			var commandHandlerType = typeof(IRequestHandler<>).MakeGenericType(typeof(TRequest));
@@ -53,7 +54,7 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 				handler = async () =>
 				{
 					var requestHandler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-					return await requestHandler.Handle(typedRequest, cancellationToken).ConfigureAwait(false);
+					return await requestHandler.Handle(typedRequest, cancellationToken);
 				};
 			}
 		}
@@ -63,7 +64,7 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 			handler = async () =>
 			{
 				var requestHandler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-				return await requestHandler.Handle(typedRequest, cancellationToken).ConfigureAwait(false);
+				return await requestHandler.Handle(typedRequest, cancellationToken);
 			};
 		}
 
