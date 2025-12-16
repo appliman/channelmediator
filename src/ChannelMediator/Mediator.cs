@@ -58,19 +58,19 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 			if (requestInterface is null)
 			{
 				// Command without response (IRequest only) - response type is Unit
-				cache[requestType] = new RequestTypeInfo(typeof(Unit), CreateCommandInvoker(requestType));
+				cache[requestType] = new RequestTypeInfo(typeof(Unit), CreateCommandInvoker());
 			}
 			else
 			{
 				var responseType = requestInterface.GetGenericArguments()[0];
-				cache[requestType] = new RequestTypeInfo(responseType, CreateRequestInvoker(requestType, responseType));
+				cache[requestType] = new RequestTypeInfo(responseType, CreateRequestInvoker(responseType));
 			}
 		}
 
 		return cache;
 	}
 
-	private static Func<Mediator, object, CancellationToken, Task<object?>> CreateRequestInvoker(Type requestType, Type responseType)
+	private static Func<Mediator, object, CancellationToken, Task<object?>> CreateRequestInvoker(Type responseType)
 	{
 		// Create a compiled delegate for Send<TResponse> to avoid reflection on each call
 		var sendMethod = typeof(Mediator)
@@ -97,7 +97,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		};
 	}
 
-	private static Func<Mediator, object, CancellationToken, Task<object?>> CreateCommandInvoker(Type requestType)
+	private static Func<Mediator, object, CancellationToken, Task<object?>> CreateCommandInvoker()
 	{
 		return async (mediator, request, ct) =>
 		{
@@ -327,9 +327,9 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	{
 		try
 		{
-			await foreach (var envelope in _channel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+			await foreach (var envelope in _channel.Reader.ReadAllAsync(_cts.Token))
 			{
-				await envelope.DispatchAsync(_handlers, _cts.Token).ConfigureAwait(false);
+				await envelope.DispatchAsync(_handlers, _cts.Token);
 			}
 		}
 		catch (OperationCanceledException)
