@@ -37,7 +37,7 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 					{
 						var handleMethod = commandHandlerType.GetMethod("Handle");
 						var task = (Task)handleMethod!.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
-						await task.ConfigureAwait(false);
+						await task.ConfigureAwait(ChannelMediatorConfiguration.Await);
 						return (TResponse)(object)Unit.Value;
 					}
 					catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException != null)
@@ -74,7 +74,7 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 			handler = () => behavior.HandleAsync(typedRequest, currentHandler, cancellationToken);
 		}
 
-		var response = await handler().ConfigureAwait(false);
+		var response = await handler();
 		return response!;
 	}
 }

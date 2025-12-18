@@ -30,7 +30,7 @@ internal sealed class RequestEnvelope<TResponse> : IRequestEnvelope
 		try
 		{
 			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(dispatcherToken, _callerToken);
-			var response = await handler.HandleAsync(_request, linkedCts.Token).ConfigureAwait(false);
+			var response = await handler.HandleAsync(_request, linkedCts.Token);
 			_completionSource.TrySetResult((TResponse)response);
 		}
 		catch (OperationCanceledException exception)

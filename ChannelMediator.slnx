@@ -5,6 +5,7 @@
     <Project Path="src\ChannelMediator/ChannelMediator.csproj" />
   </Folder>
   <Folder Name="/2-Samples/">
+    <Project Path="src/BlazorAppSample/BlazorAppSample.csproj" Id="168a7a09-1e47-4b4a-a562-b3c0e626f699" />
     <Project Path="src/ChannelMediatorSampleShared/ChannelMediatorSampleShared.csproj" />
     <Project Path="src\ChannelMediatorConsole/ChannelMediatorSampleConsole.csproj" />
     <Project Path="src\ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" Id="89670ec7-756b-484c-8a8f-7c115cef3d25" />

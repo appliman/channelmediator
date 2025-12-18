@@ -14,7 +14,7 @@ internal sealed class NotificationHandlerWrapper<TNotification> : INotificationH
 
 		foreach (var handler in handlers)
 		{
-			await handler.Handle(typedNotification, cancellationToken).ConfigureAwait(false);
+			await handler.Handle(typedNotification, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 		}
 	}
 }

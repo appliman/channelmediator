@@ -88,7 +88,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		return async (mediator, request, ct) =>
 		{
 			var task = (Task)genericSendMethod.Invoke(mediator, [request, ct])!;
-			await task.ConfigureAwait(false);
+			await task.ConfigureAwait(ChannelMediatorConfiguration.Await);
 
 			var resultProperty = task.GetType().GetProperty(nameof(Task<object>.Result));
 			var result = resultProperty!.GetValue(task);
@@ -101,7 +101,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	{
 		return async (mediator, request, ct) =>
 		{
-			await mediator.Send((IRequest)request, ct).ConfigureAwait(false);
+			await mediator.Send((IRequest)request, ct).ConfigureAwait(ChannelMediatorConfiguration.Await);
 			return null;
 		};
 	}
@@ -146,9 +146,9 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		var completionSource = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var envelope = new RequestEnvelope<TResponse>(request, completionSource, cancellationToken);
 
-		await _channel.Writer.WriteAsync(envelope, cancellationToken).ConfigureAwait(false);
+		await _channel.Writer.WriteAsync(envelope, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 
-		return await completionSource.Task.ConfigureAwait(false);
+		return await completionSource.Task.ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	/// <inheritdoc />
@@ -159,7 +159,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 			throw new ArgumentNullException(nameof(request));
 		}
 
-		await Send<Unit>(request, cancellationToken).ConfigureAwait(false);
+		await Send<Unit>(request, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	/// <inheritdoc />
@@ -175,11 +175,11 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		// Fast path: use pre-computed cache
 		if (_requestTypeCache.TryGetValue(requestType, out var typeInfo))
 		{
-			return await typeInfo.InvokeFunc(this, request, cancellationToken).ConfigureAwait(false);
+			return await typeInfo.InvokeFunc(this, request, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 		}
 
 		// Slow path: fallback for types not in cache (shouldn't happen in normal usage)
-		return await SendObjectSlowPath(request, requestType, cancellationToken).ConfigureAwait(false);
+		return await SendObjectSlowPath(request, requestType, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	private async Task<object?> SendObjectSlowPath(object request, Type requestType, CancellationToken cancellationToken)
@@ -192,7 +192,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		{
 			if (request is IRequest commandRequest)
 			{
-				await Send(commandRequest, cancellationToken).ConfigureAwait(false);
+				await Send(commandRequest, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 				return null;
 			}
 
@@ -219,7 +219,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		var genericSendMethod = sendMethod.MakeGenericMethod(responseType);
 		var task = (Task)genericSendMethod.Invoke(this, [request, cancellationToken])!;
-		await task.ConfigureAwait(false);
+		await task.ConfigureAwait(ChannelMediatorConfiguration.Await);
 
 		var resultProperty = task.GetType().GetProperty(nameof(Task<object>.Result));
 		var result = resultProperty!.GetValue(task);
@@ -244,11 +244,11 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		if (_notificationConfiguration.Strategy == NotificationPublishStrategy.Parallel)
 		{
-			await PublishParallelAsync(notification, cancellationToken).ConfigureAwait(false);
+			await PublishParallelAsync(notification, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 		}
 		else
 		{
-			await PublishSequentialAsync(notification, wrapper, cancellationToken).ConfigureAwait(false);
+			await PublishSequentialAsync(notification, wrapper, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 		}
 	}
 
@@ -265,12 +265,12 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		// Fast path: use pre-computed cache
 		if (_notificationTypeCache.TryGetValue(notificationType, out var typeInfo))
 		{
-			await typeInfo.PublishFunc(this, notification, cancellationToken).ConfigureAwait(false);
+			await typeInfo.PublishFunc(this, notification, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 			return;
 		}
 
 		// Slow path: fallback for types not in cache
-		await PublishObjectSlowPath(notification, notificationType, cancellationToken).ConfigureAwait(false);
+		await PublishObjectSlowPath(notification, notificationType, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	private async Task PublishObjectSlowPath(object notification, Type notificationType, CancellationToken cancellationToken)
@@ -297,7 +297,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		var genericPublishMethod = publishMethod.MakeGenericMethod(notificationType);
 		var task = (Task)genericPublishMethod.Invoke(this, [notification, cancellationToken])!;
-		await task.ConfigureAwait(false);
+		await task.ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	private async Task PublishSequentialAsync<TNotification>(
@@ -306,7 +306,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		CancellationToken cancellationToken)
 		where TNotification : INotification
 	{
-		await wrapper.HandleAsync(notification, _serviceProvider, cancellationToken).ConfigureAwait(false);
+		await wrapper.HandleAsync(notification, _serviceProvider, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	private async Task PublishParallelAsync<TNotification>(
@@ -320,7 +320,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		var tasks = handlers.Select(handler =>
 			handler.Handle(notification, cancellationToken));
 
-		await Task.WhenAll(tasks).ConfigureAwait(false);
+		await Task.WhenAll(tasks).ConfigureAwait(ChannelMediatorConfiguration.Await);
 	}
 
 	private async Task ProcessAsync()
@@ -378,7 +378,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		try
 		{
-			await _pump.ConfigureAwait(false);
+			await _pump.ConfigureAwait(ChannelMediatorConfiguration.Await);
 		}
 		catch (OperationCanceledException)
 		{
