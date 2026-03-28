@@ -19,8 +19,8 @@ public class ChannelMediatorTests
         var response = await mediator.Send(request);
 
         // Assert
-        response.Should().NotBeNull();
-        response.Result.Should().Be("Handled: test");
+        Assert.NotNull(response);
+        Assert.Equal("Handled: test", response.Result);
     }
 
     [Fact]
@@ -38,8 +38,8 @@ public class ChannelMediatorTests
         var response = await mediator.Send(request);
 
         // Assert
-        response.Should().NotBeNull();
-        response.Result.Should().Be("Handled: send-test");
+        Assert.NotNull(response);
+        Assert.Equal("Handled: send-test", response.Result);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class ChannelMediatorTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await mediator.Send(request));
-        exception.Message.Should().Contain("No handler registered");
+        Assert.Contains("No handler registered", exception.Message);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class ChannelMediatorTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await mediator.Send(request));
-        exception.Message.Should().Be("Handler failed");
+        Assert.Equal("Handler failed", exception.Message);
     }
 
     [Fact]
@@ -130,10 +130,10 @@ public class ChannelMediatorTests
         await Task.Delay(50); // Give time for sequential processing
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler1.HandledMessages[0].Should().Be("Handler1: test message");
-        handler2.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages[0].Should().Be("Handler2: test message");
+        Assert.Single(handler1.HandledMessages);
+        Assert.Equal("Handler1: test message", handler1.HandledMessages[0]);
+        Assert.Single(handler2.HandledMessages);
+        Assert.Equal("Handler2: test message", handler2.HandledMessages[0]);
     }
 
     [Fact]
@@ -158,8 +158,8 @@ public class ChannelMediatorTests
         await Task.Delay(50); // Give time for sequential processing
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 
     [Fact]
@@ -186,8 +186,8 @@ public class ChannelMediatorTests
         await mediator.Publish(notification);
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class ChannelMediatorTests
 
         // Assert - The mediator should be disposed
         // Attempting to use it may result in exceptions or undefined behavior
-        mediator.Should().NotBeNull();
+        Assert.NotNull(mediator);
     }
 
     [Fact]
@@ -259,10 +259,10 @@ public class ChannelMediatorTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        results.Should().HaveCount(10);
+        Assert.Equal(10, results.Length);
         for (int i = 0; i < 10; i++)
         {
-            results[i].Result.Should().Be($"Handled: test-{i}");
+            Assert.Equal($"Handled: test-{i}", results[i].Result);
         }
     }
 
@@ -280,19 +280,19 @@ public class ChannelMediatorTests
         var response2 = await mediator.Send(new AnotherTestRequest(5));
 
         // Assert
-        response1.Result.Should().Be("Handled: test");
-        response2.Should().Be(10);
+        Assert.Equal("Handled: test", response1.Result);
+        Assert.Equal(10, response2);
     }
 
     [Fact]
     public async Task Constructor_WithHandlersOnly_CreatesValidMediator()
     {
         // Arrange & Act
-        var handler = new RequestHandlerWrapper<TestRequest, TestResponse>(Mock.Of<IServiceProvider>());
+        var handler = new RequestHandlerWrapper<TestRequest, TestResponse>(new ServiceCollection().BuildServiceProvider());
         var mediator = new Mediator(new[] { handler });
 
         // Assert
-        mediator.Should().NotBeNull();
+        Assert.NotNull(mediator);
 
         // Cleanup
         await mediator.DisposeAsync();

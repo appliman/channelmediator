@@ -8,7 +8,8 @@ A modern, high-performance mediator for .NET, built on `System.Threading.Channel
 - ✅ **Channel-Based** - Asynchronous processing with natural backpressure
 - ✅ **Pipeline Behaviors** - Global AND specific
 - ✅ **Parallel Notifications** - Sequential or parallel broadcasting
-- ✅ **High Performance** - ValueTask, Channel, modern optimizations
+- ✅ **High Performance** - Channel-based with modern optimizations
+- ✅ **Azure Service Bus** - Distributed messaging with queues and topics
 - ✅ **.NET 10** - Modern code with C# 14
 
 ## 📦 Installation
@@ -53,7 +54,7 @@ public record CartItem(string ProductCode, int Quantity, decimal Total);
 // Handler
 public class AddToCartHandler : IRequestHandler<AddToCartRequest, CartItem>
 {
-    public async ValueTask<CartItem> HandleAsync(
+    public async Task<CartItem> Handle(
         AddToCartRequest request, 
         CancellationToken cancellationToken)
     {
@@ -66,10 +67,6 @@ public class AddToCartHandler : IRequestHandler<AddToCartRequest, CartItem>
 ### Usage
 
 ```csharp
-// Native API (recommended)
-var cart = await mediator.InvokeAsync(new AddToCartRequest("ABC123"));
-
-// MediatR API (compatible)
 var cart = await mediator.Send(new AddToCartRequest("ABC123"));
 ```
 
@@ -82,25 +79,22 @@ public record ProductAddedNotification(string ProductCode, int Quantity) : INoti
 // Handlers (multiple handlers supported)
 public class LogHandler : INotificationHandler<ProductAddedNotification>
 {
-    public ValueTask HandleAsync(ProductAddedNotification notification, CancellationToken ct)
+    public Task Handle(ProductAddedNotification notification, CancellationToken ct)
     {
         Console.WriteLine($"LOG: {notification.ProductCode}");
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 }
 
 public class EmailHandler : INotificationHandler<ProductAddedNotification>
 {
-    public async ValueTask HandleAsync(ProductAddedNotification notification, CancellationToken ct)
+    public async Task Handle(ProductAddedNotification notification, CancellationToken ct)
     {
         await SendEmailAsync(notification.ProductCode);
     }
 }
 
-// Usage - Native API
-await mediator.PublishAsync(new ProductAddedNotification("ABC123", 1));
-
-// Usage - MediatR API
+// Publish notification to all handlers
 await mediator.Publish(new ProductAddedNotification("ABC123", 1));
 ```
 
@@ -156,29 +150,17 @@ services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddT
 
 ## 📊 Available APIs
 
-| Method | Return Type | Description | Style |
-|--------|-------------|-------------|-------|
-| `InvokeAsync` | `ValueTask<T>` | Executes a request | **Native** |
-| `Send` | `Task<T>` | Executes a request | **MediatR** |
-| `PublishAsync` | `ValueTask` | Publishes a notification | **Native** |
-| `Publish` | `Task` | Publishes a notification | **MediatR** |
-
-**Both APIs coexist** - choose whichever you prefer!
-
-## 🔥 Advantages vs MediatR
-
-| Feature | MediatR | ChannelMediator |
-|----------------|---------|-----------------|
-| API Compatible | ✅ | ✅ |
-| Pipeline Behaviors | ✅ | ✅ |
-| **Open Generic Behaviors** | ❌ | ✅ |
-| **Parallel Notifications** | ❌ | ✅ |
-| **Channel-Based** | ❌ | ✅ |
-| **Backpressure** | ❌ | ✅ |
-| **ValueTask** | ❌ | ✅ |
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `Send<TResponse>(IRequest<TResponse>, CancellationToken)` | `Task<TResponse>` | Sends a request to a single handler and returns the response |
+| `Send(IRequest, CancellationToken)` | `Task` | Sends a request without response (command) |
+| `Send(object, CancellationToken)` | `Task<object?>` | Sends a request resolved at runtime |
+| `Publish<TNotification>(TNotification, CancellationToken)` | `Task` | Publishes a notification to multiple handlers |
+| `Publish(object, CancellationToken)` | `Task` | Publishes a notification resolved at runtime |
 
 ## 📚 Documentation
 
+- [🚌 Azure Service Bus Integration](./AZURE_SERVICE_BUS.md)
 - [🔄 MediatR Compatibility](./MEDIATR_COMPATIBILITY.md)
 - [🎭 Pipeline Behaviors](./PIPELINE_BEHAVIORS.md)
 - [📊 Sequence Diagram](./SEQUENCE_DIAGRAM.md)
@@ -188,7 +170,7 @@ services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddT
 ```
 Client
   ↓
-IMediator (Send / InvokeAsync)
+IMediator (Send / Publish)
   ↓
 Channel (async queue)
   ↓
@@ -200,6 +182,29 @@ Pipeline Behaviors (chain)
   ├─ Specific Behavior 1
   └─ Request Handler (business logic)
 ```
+
+## 🚌 Azure Service Bus Integration
+
+In a microservice architecture, a single process cannot handle all requests. You need to **distribute workloads** across multiple consumer instances and **decouple services** through asynchronous messaging.
+
+`ChannelMediator.AzureBus` extends the mediator with two extension methods that transparently route messages through **Azure Service Bus**:
+
+- **`mediator.Notify(notification)`** → Publishes to a **Topic** (fan-out to all subscribers)
+- **`mediator.EnqueueRequest(request)`** → Enqueues to a **Queue** (competing consumers, only one processes each message)
+
+```csharp
+var mediator = app.Services.GetRequiredService<IMediator>();
+
+// Fan-out notification to all subscriber services
+await mediator.Notify(new ProductAddedNotification("SKU-001", 5, 49.95m));
+
+// Enqueue a request for competing consumer processing
+await mediator.EnqueueRequest(new MyRequest("process-order-42"));
+```
+
+Supports **Live** mode (real Azure Service Bus) and **Mock** mode (in-process for local development). Queues, topics, and subscriptions are created automatically on first use.
+
+👉 **[Full documentation →](./AZURE_SERVICE_BUS.md)**
 
 ## 🎯 Use Cases
 
@@ -225,7 +230,7 @@ services.AddChannelMediator(config =>
     config.Strategy = NotificationPublishStrategy.Parallel);
 
 // All handlers execute in parallel with Task.WhenAll
-await mediator.PublishAsync(notification);
+await mediator.Publish(notification);
 ```
 
 ### Sequential Notifications
@@ -235,7 +240,7 @@ services.AddChannelMediator(config =>
     config.Strategy = NotificationPublishStrategy.Sequential);
 
 // Handlers execute one after another
-await mediator.PublishAsync(notification);
+await mediator.Publish(notification);
 ```
 
 ## 🧪 Tests
@@ -251,7 +256,7 @@ public async Task Should_Handle_Request()
     var mediator = provider.GetRequiredService<IMediator>();
 
     // Act
-    var result = await mediator.InvokeAsync(new AddToCartRequest("TEST"));
+    var result = await mediator.Send(new AddToCartRequest("TEST"));
 
     // Assert
     Assert.NotNull(result);
@@ -280,12 +285,8 @@ Contributions are welcome! Open an issue or a PR.
 
 ## ⭐ Why ChannelMediator?
 
-1. **Performance** - Channel + ValueTask = fast
-2. **Flexibility** - Native API + MediatR API
+1. **Performance** - Channel-based asynchronous processing
+2. **Flexibility** - MediatR-compatible API with powerful extensions
 3. **Modern** - .NET 10, C# 14, modern patterns
 4. **Powerful** - Global behaviors, parallel notifications
 5. **Familiar** - MediatR compatible, easy migration
-
----
-
-**Made with ❤️ for the .NET community**

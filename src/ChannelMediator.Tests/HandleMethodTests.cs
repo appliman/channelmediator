@@ -19,8 +19,8 @@ public class HandleMethodTests
 		var response = await handler.Handle(request, CancellationToken.None);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Result.Should().Be("Handled: test-handle");
+		Assert.NotNull(response);
+		Assert.Equal("Handled: test-handle", response.Result);
 	}
 
 	[Fact]
@@ -35,7 +35,7 @@ public class HandleMethodTests
 		await handler.Handle(command, CancellationToken.None);
 
 		// Assert
-		TestCommandHandler.LastExecutedValue.Should().Be("handle-test");
+		Assert.Equal("handle-test", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -49,7 +49,7 @@ public class HandleMethodTests
 		var response = await handler.Handle(request, CancellationToken.None);
 
 		// Assert
-		response.Should().Be(200);
+		Assert.Equal(200, response);
 	}
 
 	[Fact]
@@ -65,7 +65,7 @@ public class HandleMethodTests
 		var response = await handler.Handle(request, cts.Token);
 
 		// Assert
-		response.Result.Should().Be("Handled: test");
+		Assert.Equal("Handled: test", response.Result);
 	}
 
 	[Fact]
@@ -80,7 +80,7 @@ public class HandleMethodTests
 		await handler.Handle(command, cts.Token);
 
 		// Assert
-		TestCommandHandler.LastExecutedValue.Should().Be("test");
+		Assert.Equal("test", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -93,7 +93,7 @@ public class HandleMethodTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await handler.Handle(request, CancellationToken.None));
-		exception.Message.Should().Be("Handler failed");
+		Assert.Equal("Handler failed", exception.Message);
 	}
 
 	[Fact]
@@ -106,7 +106,7 @@ public class HandleMethodTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await handler.Handle(command, CancellationToken.None));
-		exception.Message.Should().Be("Command handler failed");
+		Assert.Equal("Command handler failed", exception.Message);
 	}
 
 	[Fact]
@@ -121,9 +121,9 @@ public class HandleMethodTests
 		var response3 = await handler.Handle(new TestRequest("third"), CancellationToken.None);
 
 		// Assert
-		response1.Result.Should().Be("Handled: first");
-		response2.Result.Should().Be("Handled: second");
-		response3.Result.Should().Be("Handled: third");
+		Assert.Equal("Handled: first", response1.Result);
+		Assert.Equal("Handled: second", response2.Result);
+		Assert.Equal("Handled: third", response3.Result);
 	}
 
 	[Fact]
@@ -139,10 +139,10 @@ public class HandleMethodTests
 		await handler.Handle(new TestCommand("cmd3"), CancellationToken.None);
 
 		// Assert
-		TestCommandHandler.ExecutedValues.Should().HaveCount(3);
-		TestCommandHandler.ExecutedValues.Should().Contain("cmd1");
-		TestCommandHandler.ExecutedValues.Should().Contain("cmd2");
-		TestCommandHandler.ExecutedValues.Should().Contain("cmd3");
+		Assert.Equal(3, TestCommandHandler.ExecutedValues.Count);
+		Assert.Contains("cmd1", TestCommandHandler.ExecutedValues);
+		Assert.Contains("cmd2", TestCommandHandler.ExecutedValues);
+		Assert.Contains("cmd3", TestCommandHandler.ExecutedValues);
 	}
 
 	[Fact]
@@ -157,8 +157,8 @@ public class HandleMethodTests
 		var response = await task;
 
 		// Assert
-		task.Should().BeOfType<Task<TestResponse>>();
-		response.Result.Should().Be("Handled: async-test");
+		Assert.IsType<Task<TestResponse>>(task);
+		Assert.Equal("Handled: async-test", response.Result);
 	}
 
 	[Fact]
@@ -174,8 +174,8 @@ public class HandleMethodTests
 		await task;
 
 		// Assert
-		task.Should().NotBeNull();
-		task.IsCompleted.Should().BeTrue();
-		TestCommandHandler.LastExecutedValue.Should().Be("async-cmd");
+		Assert.NotNull(task);
+		Assert.True(task.IsCompleted);
+		Assert.Equal("async-cmd", TestCommandHandler.LastExecutedValue);
 	}
 }

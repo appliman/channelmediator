@@ -20,9 +20,9 @@ public class ObjectRequestTests
 		var response = await mediator.Send(request);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Should().BeOfType<TestResponse>();
-		((TestResponse)response!).Result.Should().Be("Handled: test-object");
+		Assert.NotNull(response);
+		Assert.IsType<TestResponse>(response);
+		Assert.Equal("Handled: test-object", ((TestResponse)response!).Result);
 	}
 
 	[Fact]
@@ -40,9 +40,9 @@ public class ObjectRequestTests
 		var response = await mediator.Send(request);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Should().BeOfType<TestResponse>();
-		((TestResponse)response!).Result.Should().Be("Handled: send-object");
+		Assert.NotNull(response);
+		Assert.IsType<TestResponse>(response);
+		Assert.Equal("Handled: send-object", ((TestResponse)response!).Result);
 	}
 
 	[Fact]
@@ -61,8 +61,8 @@ public class ObjectRequestTests
 		var response = await mediator.Send(command);
 
 		// Assert
-		response.Should().BeNull();
-		TestCommandHandler.LastExecutedValue.Should().Be("test-command");
+		Assert.Null(response);
+		Assert.Equal("test-command", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -81,8 +81,8 @@ public class ObjectRequestTests
 		var response = await mediator.Send(command);
 
 		// Assert
-		response.Should().BeNull();
-		TestCommandHandler.LastExecutedValue.Should().Be("send-command");
+		Assert.Null(response);
+		Assert.Equal("send-command", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -127,7 +127,7 @@ public class ObjectRequestTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
 			await mediator.Send(invalidRequest));
-		exception.Message.Should().Contain("does not implement IRequest");
+		Assert.Contains("does not implement IRequest", exception.Message);
 	}
 
 	[Fact]
@@ -144,7 +144,7 @@ public class ObjectRequestTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
 			await mediator.Send(invalidRequest));
-		exception.Message.Should().Contain("does not implement IRequest");
+		Assert.Contains("does not implement IRequest", exception.Message);
 	}
 
 	[Fact]
@@ -162,8 +162,8 @@ public class ObjectRequestTests
 		var response = await mediator.Send(request);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Should().Be(84);
+		Assert.NotNull(response);
+		Assert.Equal(84, response);
 	}
 
 	[Fact]
@@ -181,8 +181,8 @@ public class ObjectRequestTests
 		var response = await mediator.Send(request);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Should().Be(20);
+		Assert.NotNull(response);
+		Assert.Equal(20, response);
 	}
 
 	[Fact]
@@ -241,11 +241,11 @@ public class ObjectRequestTests
 		var results = await Task.WhenAll(tasks);
 
 		// Assert
-		results.Should().HaveCount(10);
+		Assert.Equal(10, results.Length);
 		for (int i = 0; i < 10; i++)
 		{
-			results[i].Should().BeOfType<TestResponse>();
-			((TestResponse)results[i]!).Result.Should().Be($"Handled: test-{i}");
+			Assert.IsType<TestResponse>(results[i]);
+			Assert.Equal($"Handled: test-{i}", ((TestResponse)results[i]!).Result);
 		}
 	}
 
@@ -269,11 +269,11 @@ public class ObjectRequestTests
 		var results = await Task.WhenAll(tasks);
 
 		// Assert
-		results.Should().HaveCount(5);
+		Assert.Equal(5, results.Length);
 		for (int i = 0; i < 5; i++)
 		{
-			results[i].Should().BeOfType<TestResponse>();
-			((TestResponse)results[i]!).Result.Should().Be($"Handled: send-{i}");
+			Assert.IsType<TestResponse>(results[i]);
+			Assert.Equal($"Handled: send-{i}", ((TestResponse)results[i]!).Result);
 		}
 	}
 
@@ -300,13 +300,13 @@ public class ObjectRequestTests
 		await Task.Delay(50); // Give time for command processing
 
 		// Assert
-		response1.Should().BeOfType<TestResponse>();
-		((TestResponse)response1!).Result.Should().Be("Handled: test1");
-		
-		response2.Should().Be(30);
-		
-		response3.Should().BeNull();
-		TestCommandHandler.ExecutedValues.Should().Contain("cmd1");
+		Assert.IsType<TestResponse>(response1);
+		Assert.Equal("Handled: test1", ((TestResponse)response1!).Result);
+
+		Assert.Equal(30, response2);
+
+		Assert.Null(response3);
+		Assert.Contains("cmd1", TestCommandHandler.ExecutedValues);
 	}
 
 	[Fact]
@@ -332,13 +332,13 @@ public class ObjectRequestTests
 		await Task.Delay(50); // Give time for command processing
 
 		// Assert
-		response1.Should().BeOfType<TestResponse>();
-		((TestResponse)response1!).Result.Should().Be("Handled: send-test");
-		
-		response2.Should().Be(50);
-		
-		response3.Should().BeNull();
-		TestCommandHandler.ExecutedValues.Should().Contain("send-cmd");
+		Assert.IsType<TestResponse>(response1);
+		Assert.Equal("Handled: send-test", ((TestResponse)response1!).Result);
+
+		Assert.Equal(50, response2);
+
+		Assert.Null(response3);
+		Assert.Contains("send-cmd", TestCommandHandler.ExecutedValues);
 	}
 
 	[Fact]
@@ -355,7 +355,7 @@ public class ObjectRequestTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await mediator.Send(request));
-		exception.Message.Should().Be("Handler failed");
+		Assert.Equal("Handler failed", exception.Message);
 	}
 
 	[Fact]
@@ -372,6 +372,6 @@ public class ObjectRequestTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await mediator.Send(request));
-		exception.Message.Should().Be("Handler failed");
+		Assert.Equal("Handler failed", exception.Message);
 	}
 }

@@ -18,9 +18,9 @@ public class MediatorFactoryTests
 		var mediator2 = factory.CreateMediator();
 
 		// Assert
-		mediator1.Should().NotBeNull();
-		mediator2.Should().NotBeNull();
-		mediator1.Should().NotBeSameAs(mediator2);
+		Assert.NotNull(mediator1);
+		Assert.NotNull(mediator2);
+		Assert.NotSame(mediator1, mediator2);
 	}
 
 	[Fact]
@@ -39,8 +39,8 @@ public class MediatorFactoryTests
 		var response = await mediator.Send(request);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Result.Should().Be("Handled: factory-test");
+		Assert.NotNull(response);
+		Assert.Equal("Handled: factory-test", response.Result);
 	}
 
 	[Fact]
@@ -62,8 +62,8 @@ public class MediatorFactoryTests
 		var results = await Task.WhenAll(task1, task2);
 
 		// Assert
-		results[0].Result.Should().Be("Handled: mediator1-test");
-		results[1].Result.Should().Be("Handled: mediator2-test");
+		Assert.Equal("Handled: mediator1-test", results[0].Result);
+		Assert.Equal("Handled: mediator2-test", results[1].Result);
 	}
 
 	[Fact]
@@ -104,9 +104,9 @@ public class MediatorFactoryTests
 		var factory = new MediatorFactory(handlers, null!, serviceProvider, config);
 
 		// Assert
-		factory.Should().NotBeNull();
+		Assert.NotNull(factory);
 		var mediator = factory.CreateMediator();
-		mediator.Should().NotBeNull();
+		Assert.NotNull(mediator);
 	}
 
 	[Fact]
@@ -121,9 +121,9 @@ public class MediatorFactoryTests
 		var factory = new MediatorFactory(handlers, notificationHandlers, serviceProvider, null!);
 
 		// Assert
-		factory.Should().NotBeNull();
+		Assert.NotNull(factory);
 		var mediator = factory.CreateMediator();
-		mediator.Should().NotBeNull();
+		Assert.NotNull(mediator);
 	}
 
 	[Fact]
@@ -162,7 +162,7 @@ public class MediatorFactoryTests
 
 		// Assert - mediator2 should still work
 		var response = await mediator2.Send(new TestRequest("still-working"));
-		response.Result.Should().Be("Handled: still-working");
+		Assert.Equal("Handled: still-working", response.Result);
 	}
 
 	[Fact]
@@ -178,7 +178,7 @@ public class MediatorFactoryTests
 		var factory2 = serviceProvider.GetRequiredService<IMediatorFactory>();
 
 		// Assert
-		factory1.Should().BeSameAs(factory2);
+		Assert.Same(factory1, factory2);
 	}
 
 	[Fact]
@@ -197,6 +197,6 @@ public class MediatorFactoryTests
 		await mediator.Send(command);
 
 		// Assert
-		TestCommandHandler.LastExecutedValue.Should().Be("factory-command-test");
+		Assert.Equal("factory-command-test", TestCommandHandler.LastExecutedValue);
 	}
 }
