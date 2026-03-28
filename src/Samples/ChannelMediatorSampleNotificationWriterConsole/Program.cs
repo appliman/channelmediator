@@ -13,7 +13,7 @@ var host = Host.CreateDefaultBuilder(args);
 
 host.ConfigureServices((context, services) =>
 {
-	var connectionString = context.Configuration.GetConnectionString("AzureBusConnectionString");
+	var connectionString = context.Configuration["ConnectionStrings:AzureBusConnectionString"];
 	services.AddChannelMediator(config =>
 	{
 		config.Strategy = NotificationPublishStrategy.Parallel;

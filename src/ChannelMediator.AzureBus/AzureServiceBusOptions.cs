@@ -69,7 +69,7 @@ public sealed class AzureServiceBusOptions
     /// available values in the AzureServiceBusMode enumeration.</remarks>
     public AzureServiceBusMode ProcessMode {  get; set; } = AzureServiceBusMode.Live;
 
-	internal bool SubscribeToAllTopics { get; set; } = false;
+	internal bool SubscribeToAllTopics { get; set; } = true;
 
 	public void AddAllAzureBusTopicNotification()
 	{
@@ -145,29 +145,4 @@ public sealed class AzureServiceBusOptions
 		Services.TryAddEnumerable(
 			ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, QueueReadersHostedService>());
 	}
-
-	public void AddAzureBusQueueReader<TMessage>(
-		string queueName,
-		Func<IMediator, TMessage, Task> handle,
-		Action<QueueReaderOptions>? configure = null)
-	{
-		ArgumentNullException.ThrowIfNull(queueName);
-		ArgumentNullException.ThrowIfNull(handle);
-
-		var readerOptions = new QueueReaderOptions
-		{
-			QueueName = queueName,
-			RequestType = typeof(TMessage),
-			Handler = handle
-		};
-		configure?.Invoke(readerOptions);
-
-		// Register the reader options in the registry during service configuration
-		QueueReaderRegistry.Register(readerOptions);
-
-		// Ensure the hosted service is registered (only once)
-		Services.TryAddEnumerable(
-			ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, QueueReadersHostedService>());
-	}
-
-	}
+}
