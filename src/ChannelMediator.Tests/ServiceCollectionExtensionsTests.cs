@@ -17,8 +17,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
-        mediator.Should().BeOfType<Mediator>();
+        Assert.NotNull(mediator);
+        Assert.IsType<Mediator>(mediator);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var mediator = serviceProvider.GetService<IMediator>();
-        mediator.Should().NotBeNull();
+        Assert.NotNull(mediator);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class ServiceCollectionExtensionsTests
         }, typeof(TestRequestHandler).Assembly);
 
         // Assert
-        configuredStrategy.Should().Be(NotificationPublishStrategy.Parallel);
+        Assert.Equal(NotificationPublishStrategy.Parallel, configuredStrategy);
     }
 
     [Fact]
@@ -66,8 +66,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var handler = serviceProvider.GetService<IRequestHandler<TestRequest, TestResponse>>();
-        handler.Should().NotBeNull();
-        handler.Should().BeOfType<TestRequestHandler>();
+        Assert.NotNull(handler);
+        Assert.IsType<TestRequestHandler>(handler);
     }
 
     [Fact]
@@ -82,8 +82,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
-        handlers.Should().NotBeNull();
-        handlers.Should().HaveCountGreaterThan(1);
+        Assert.NotNull(handlers);
+        Assert.True(handlers.Count() > 1);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var wrappers = serviceProvider.GetServices<IRequestHandlerWrapper>();
-        wrappers.Should().NotBeEmpty();
+        Assert.NotEmpty(wrappers);
     }
 
     [Fact]
@@ -113,11 +113,11 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var handler = serviceProvider.GetService<IRequestHandler<TestRequest, TestResponse>>();
-        handler.Should().NotBeNull();
-        handler.Should().BeOfType<TestRequestHandler>();
+        Assert.NotNull(handler);
+        Assert.IsType<TestRequestHandler>(handler);
 
         var wrapper = serviceProvider.GetService<IRequestHandlerWrapper>();
-        wrapper.Should().NotBeNull();
+        Assert.NotNull(wrapper);
     }
 
     [Fact]
@@ -132,8 +132,8 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         var behavior = serviceProvider.GetService<IPipelineBehavior<TestRequest, TestResponse>>();
-        behavior.Should().NotBeNull();
-        behavior.Should().BeOfType<LoggingBehavior<TestRequest, TestResponse>>();
+        Assert.NotNull(behavior);
+        Assert.IsType<LoggingBehavior<TestRequest, TestResponse>>(behavior);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class ServiceCollectionExtensionsTests
 
         // Assert
         // The behavior should be registered in the service collection
-        services.Should().Contain(sd => sd.ServiceType == typeof(IPipelineBehavior<,>));
+        Assert.Contains(services, sd => sd.ServiceType == typeof(IPipelineBehavior<,>));
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class ServiceCollectionExtensionsTests
         services.AddOpenPipelineBehavior(typeof(LoggingBehavior<,>));
 
         // Assert
-        services.Should().Contain(sd => sd.ServiceType == typeof(IPipelineBehavior<,>));
+        Assert.Contains(services, sd => sd.ServiceType == typeof(IPipelineBehavior<,>));
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public class ServiceCollectionExtensionsTests
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
             services.AddOpenPipelineBehavior(typeof(LoggingBehavior<TestRequest, TestResponse>)));
-        exception.Message.Should().Contain("open generic type");
+        Assert.Contains("open generic type", exception.Message);
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class ServiceCollectionExtensionsTests
         // Act & Assert
         var exception = Assert.Throws<ArgumentException>(() =>
             services.AddOpenPipelineBehavior(typeof(TestRequestHandler)));
-        exception.Message.Should().Contain("Behavior type must");
+        Assert.Contains("Behavior type must", exception.Message);
     }
 
     [Fact]
@@ -206,8 +206,8 @@ public class ServiceCollectionExtensionsTests
         await Task.Delay(50); // Give time for processing
 
         // Assert
-        loggingBehavior.Logs.Should().Contain("Before: TestRequest");
-        loggingBehavior.Logs.Should().Contain("After: TestRequest");
+        Assert.Contains("Before: TestRequest", loggingBehavior.Logs);
+        Assert.Contains("After: TestRequest", loggingBehavior.Logs);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class ServiceCollectionExtensionsTests
         await Task.Delay(50);
 
         // Assert
-        loggingBehavior.Logs.Should().HaveCount(2);
+        Assert.Equal(2, loggingBehavior.Logs.Count);
     }
 
     [Fact]
@@ -248,8 +248,8 @@ public class ServiceCollectionExtensionsTests
         var handler1 = serviceProvider.GetService<IRequestHandler<TestRequest, TestResponse>>();
         var handler2 = serviceProvider.GetService<IRequestHandler<AnotherTestRequest, int>>();
 
-        handler1.Should().NotBeNull();
-        handler2.Should().NotBeNull();
+        Assert.NotNull(handler1);
+        Assert.NotNull(handler2);
     }
 
 
@@ -270,6 +270,6 @@ public class ServiceCollectionExtensionsTests
         var handler1 = scope1.ServiceProvider.GetRequiredService<IRequestHandler<TestRequest, TestResponse>>();
         var handler2 = scope2.ServiceProvider.GetRequiredService<IRequestHandler<TestRequest, TestResponse>>();
 
-        handler1.Should().NotBeSameAs(handler2);
+        Assert.NotSame(handler1, handler2);
     }
 }

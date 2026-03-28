@@ -84,8 +84,8 @@ public class MediatorTests
 		var result = await mediator.Send(command);
 
 		// Assert
-		result.Should().BeNull(); // Commands return null
-		TestCommandHandler.LastExecutedValue.Should().Be("object-command-test");
+		Assert.Null(result); // Commands return null
+		Assert.Equal("object-command-test", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -103,9 +103,9 @@ public class MediatorTests
 		var result = await mediator.Send(request);
 
 		// Assert
-		result.Should().NotBeNull();
-		result.Should().BeOfType<TestResponse>();
-		((TestResponse)result!).Result.Should().Be("Handled: object-request-test");
+		Assert.NotNull(result);
+		Assert.IsType<TestResponse>(result);
+		Assert.Equal("Handled: object-request-test", ((TestResponse)result!).Result);
 	}
 
 	[Fact]
@@ -122,12 +122,12 @@ public class MediatorTests
 			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 			var request = new TestRequest("dispose-test");
 			var response = await mediator.Send(request);
-			response.Result.Should().Be("Handled: dispose-test");
+			Assert.Equal("Handled: dispose-test", response.Result);
 		}
 		// Scope.Dispose() is called here - should not throw
 
 		// Assert - We got here without exception
-		true.Should().BeTrue();
+		Assert.True(true);
 	}
 
 	[Fact]
@@ -144,12 +144,12 @@ public class MediatorTests
 			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 			var request = new TestRequest("async-dispose-test");
 			var response = await mediator.Send(request);
-			response.Result.Should().Be("Handled: async-dispose-test");
+			Assert.Equal("Handled: async-dispose-test", response.Result);
 		}
 		// Scope.DisposeAsync() is called here - should not throw
 
 		// Assert - We got here without exception
-		true.Should().BeTrue();
+		Assert.True(true);
 	}
 
 	[Fact]
@@ -165,7 +165,7 @@ public class MediatorTests
 		var mediator = new Mediator(wrappers);
 
 		// Assert
-		mediator.Should().NotBeNull();
+		Assert.NotNull(mediator);
 	}
 
 	[Fact]
@@ -195,6 +195,6 @@ public class MediatorTests
 		mediator.Dispose();
 
 		// Assert - Should complete without hanging
-		true.Should().BeTrue();
+		Assert.True(true);
 	}
 }

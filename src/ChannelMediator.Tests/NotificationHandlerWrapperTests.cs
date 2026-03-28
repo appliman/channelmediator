@@ -14,7 +14,7 @@ public class NotificationHandlerWrapperTests
         var notificationType = wrapper.NotificationType;
 
         // Assert
-        notificationType.Should().Be(typeof(TestNotification));
+        Assert.Equal(typeof(TestNotification), notificationType);
     }
 
     [Fact]
@@ -33,8 +33,8 @@ public class NotificationHandlerWrapperTests
         await wrapper.HandleAsync(notification, serviceProvider, CancellationToken.None);
 
         // Assert
-        handler.HandledMessages.Should().ContainSingle();
-        handler.HandledMessages[0].Should().Be("Handler1: test");
+        Assert.Single(handler.HandledMessages);
+        Assert.Equal("Handler1: test", handler.HandledMessages[0]);
     }
 
     [Fact]
@@ -55,8 +55,8 @@ public class NotificationHandlerWrapperTests
         await wrapper.HandleAsync(notification, serviceProvider, CancellationToken.None);
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class NotificationHandlerWrapperTests
         await wrapper.HandleAsync(notification, serviceProvider, CancellationToken.None);
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 }

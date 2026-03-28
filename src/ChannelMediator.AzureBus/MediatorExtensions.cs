@@ -33,18 +33,24 @@ public static class MediatorExtensions
     /// <exception cref="InvalidOperationException">
     /// Thrown when Azure Service Bus is not configured or no topic is registered for the notification type.
     /// </exception>
-    public static Task Notify<TNotification>(this IMediator mediator, TNotification notification, CancellationToken cancellationToken = default)
-        where TNotification : INotification
-    {
-        ArgumentNullException.ThrowIfNull(mediator);
-        ArgumentNullException.ThrowIfNull(notification);
+	public static Task Notify<TNotification>(this IMediator mediator, TNotification notification, CancellationToken cancellationToken = default)
+		where TNotification : INotification
+	{
+		ArgumentNullException.ThrowIfNull(mediator);
+		ArgumentNullException.ThrowIfNull(notification);
 
-        var publisher = _globalPublisher 
-            ?? throw new InvalidOperationException(
+		var publisher = _globalPublisher 
+			?? throw new InvalidOperationException(
 				"GlobalPublisher is not configured. Ensure UseChannelMediatorAzureBus() has been called during service configuration.");
 
-        return publisher.Notify(notification, cancellationToken);
-    }
+		if (publisher is MockAzurePublisher)
+		{
+			return publisher.Notify(notification, cancellationToken);
+		}
+
+		_ = Task.Run(() => publisher.Notify(notification, cancellationToken), cancellationToken);
+		return Task.CompletedTask;
+	}
 
     /// <summary>
     /// Enqueues a request for asynchronous processing using the globally configured publisher.
@@ -71,7 +77,13 @@ public static class MediatorExtensions
             throw new ArgumentException("The request object must implement only IRequest.", nameof(request));
         }
 
-        return publisher.EnqueueRequest(request, cancellationToken);
+        if (publisher is MockAzurePublisher)
+        {
+            return publisher.EnqueueRequest(request, cancellationToken);
+        }
+
+        _ = Task.Run(() => publisher.EnqueueRequest(request, cancellationToken), cancellationToken);
+        return Task.CompletedTask;
     }
 }
 

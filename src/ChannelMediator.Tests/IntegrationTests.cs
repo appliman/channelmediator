@@ -27,9 +27,9 @@ public class IntegrationTests
         await Task.Delay(50);
 
         // Assert
-        response.Result.Should().Be("Handled: integration test");
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Equal("Handled: integration test", response.Result);
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 
     [Fact]
@@ -49,10 +49,10 @@ public class IntegrationTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        results.Should().HaveCount(100);
+        Assert.Equal(100, results.Length);
         for (int i = 0; i < 100; i++)
         {
-            results[i].Result.Should().Be($"Handled: request-{i}");
+            Assert.Equal($"Handled: request-{i}", results[i].Result);
         }
     }
 
@@ -77,8 +77,8 @@ public class IntegrationTests
         await Task.Delay(50);
 
         // Assert
-        loggingBehavior1.Logs.Should().HaveCount(2);
-        loggingBehavior2.Logs.Should().HaveCount(2);
+        Assert.Equal(2, loggingBehavior1.Logs.Count);
+        Assert.Equal(2, loggingBehavior2.Logs.Count);
     }
 
     [Fact]
@@ -105,8 +105,8 @@ public class IntegrationTests
         await Task.Delay(100);
 
         // Assert
-        results.Should().HaveCount(10);
-        handler.HandledMessages.Should().HaveCount(10);
+        Assert.Equal(10, results.Length);
+        Assert.Equal(10, handler.HandledMessages.Count);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class IntegrationTests
         var handler2 = scope2.ServiceProvider.GetRequiredService<IRequestHandler<TestRequest, TestResponse>>();
 
         // Assert
-        handler1.Should().NotBeSameAs(handler2);
+        Assert.NotSame(handler1, handler2);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class IntegrationTests
         await Task.Delay(100);
 
         // Assert
-        response.Result.Should().Be("Handled: before dispose");
+        Assert.Equal("Handled: before dispose", response.Result);
     }
 
     [Fact]
@@ -171,8 +171,8 @@ public class IntegrationTests
         await Task.WhenAll(tasks);
 
         // Assert
-        handler1.HandledMessages.Should().HaveCount(10);
-        handler2.HandledMessages.Should().HaveCount(10);
+        Assert.Equal(10, handler1.HandledMessages.Count);
+        Assert.Equal(10, handler2.HandledMessages.Count);
     }
 
     [Fact]
@@ -190,7 +190,7 @@ public class IntegrationTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
             await mediator.Send(new TestRequest("")));
-        exception.Message.Should().Contain("Value cannot be empty");
+        Assert.Contains("Value cannot be empty", exception.Message);
     }
 
     [Fact]
@@ -213,6 +213,6 @@ public class IntegrationTests
         await Task.WhenAll(tasks);
 
         // Assert - Should complete without errors
-        tasks.Should().AllSatisfy(t => t.IsCompletedSuccessfully.Should().BeTrue());
+        Assert.All(tasks, t => Assert.True(t.IsCompletedSuccessfully));
     }
 }

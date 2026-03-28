@@ -16,8 +16,10 @@
   <Folder Name="/Solution Items/">
     <File Path=".azure-pipelines/workflows/azure-pipeline.yml" />
     <File Path=".azure-pipelines/workflows/channelmediator-publish.yml" />
+    <File Path=".github/workflows/ci-publish.yml" />
     <File Path="CODE_EXAMPLES.md" />
     <File Path="README.md" />
+    <File Path="SEQUENCE_DIAGRAM.md" />
   </Folder>
   <Project Path="src\ChannelMediator.Performance/ChannelMediator.Performance.csproj">
     <BuildType Project="Release" />
