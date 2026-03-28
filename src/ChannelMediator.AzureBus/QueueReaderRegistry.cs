@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
 
 namespace ChannelMediator.AzureBus;
 
@@ -18,11 +14,13 @@ internal sealed class QueueReaderRegistry
         }
         lock (_registeredOptions)
         {
-            if (_registeredOptions.Any(o =>
+            var existingOption = _registeredOptions.FirstOrDefault(o =>
                 o.QueueName.Equals(options.QueueName, StringComparison.OrdinalIgnoreCase) &&
-                o.RequestType == options.RequestType))
+                o.RequestType == options.RequestType);
+            if (existingOption != null)
             {
-                throw new InvalidOperationException($"A QueueReader for queue '{options.QueueName}' and request type '{options.RequestType.FullName}' is already registered.");
+                Trace.TraceWarning($"A QueueReader for queue '{options.QueueName}' and request type '{options.RequestType.FullName}' is already registered.");
+                return;
             }
             _registeredOptions.Add(options);
         }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace ChannelMediator.AzureBus;
 
@@ -21,19 +22,20 @@ internal sealed class TopicSubscriptionReaderRegistry
     /// Registers a new topic subscription reader configuration.
     /// </summary>
     /// <param name="options">The reader options.</param>
-    /// <exception cref="InvalidOperationException">Thrown when a reader for the same topic/subscription is already registered.</exception>
     public static void Register(TopicSubscriptionReaderOptions options)
     {
-        var key = CreateKey(options.TopicName, options.SubscriptionName);
-        
-        if (!_lazyRegistry.Value._readers.TryAdd(key, options))
-        {
-            throw new InvalidOperationException(
-                $"A reader for topic '{options.TopicName}' and subscription '{options.SubscriptionName}' is already registered.");
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        // Also index by notification type for quick lookup
-        _lazyRegistry.Value._readersByNotificationType.TryAdd(options.MessageType, options);
+        var key = CreateKey(options.TopicName, options.SubscriptionName);
+
+		var registry = _lazyRegistry.Value;
+		if (!registry._readers.TryAdd(key, options))
+		{
+			Trace.TraceWarning($"A TopicSubscriptionReader for topic '{options.TopicName}' and subscription '{options.SubscriptionName}' is already registered.");
+            return;
+		}
+
+        registry._readersByNotificationType.AddOrUpdate(options.MessageType, options, (_, _) => options);
     }
 
     /// <summary>

@@ -7,7 +7,7 @@
 internal interface IAzurePublisher
 {
     /// <summary>
-    /// Publishes a notification to the appropriate Azure Service Bus topic
+    /// Notifies the appropriate Azure Service Bus topic with a notification
     /// based on the notification type registration in the TopicSubscriptionReaderRegistry.
     /// </summary>
     /// <typeparam name="TNotification">The type of the notification.</typeparam>
@@ -17,17 +17,8 @@ internal interface IAzurePublisher
     /// <exception cref="InvalidOperationException">
     /// Thrown when no topic is registered for the notification type.
     /// </exception>
-    Task PublishAsync<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
-        where TNotification : INotification;
-
-    /// <summary>
-    /// Asynchronously publishes a message to the specified topic.
-    /// </summary>
-    /// <param name="topicName">The name of the topic to which the message will be published. Cannot be null or empty.</param>
-    /// <param name="message">The message object to publish. Cannot be null.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used to cancel the publish operation.</param>
-    /// <returns>A task that represents the asynchronous publish operation.</returns>
-    Task PublishAsync(string topicName, object message, CancellationToken cancellationToken = default);
+    Task Notify<T>(T notification, CancellationToken cancellationToken = default)
+        where T : INotification;
 
     /// <summary>
     /// Enqueues the specified request for asynchronous processing.
@@ -35,14 +26,6 @@ internal interface IAzurePublisher
     /// <param name="request">The request object to be enqueued. Cannot be null.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the enqueue operation.</param>
     /// <returns>A task that represents the asynchronous enqueue operation.</returns>
-    Task EnqueueRequest(object request, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Enqueues a message to the specified queue for asynchronous processing.
-    /// </summary>
-    /// <param name="queueName">The name of the queue to which the message will be enqueued. Cannot be null or empty.</param>
-    /// <param name="message">The message object to enqueue. Cannot be null.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used to cancel the enqueue operation.</param>
-    /// <returns>A task that represents the asynchronous enqueue operation.</returns>
-    Task Enqueue(string queueName, object message, CancellationToken cancellationToken = default);
+    Task EnqueueRequest<R>(R request, CancellationToken cancellationToken = default)
+        where R : IRequest;
 }

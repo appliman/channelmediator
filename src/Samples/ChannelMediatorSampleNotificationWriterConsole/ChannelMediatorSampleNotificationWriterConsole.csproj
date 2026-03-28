@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<UserSecretsId>channelmediator-sample-notification-writer-console</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\ChannelMediator.AzureBus\ChannelMediator.AzureBus.csproj" />
+		<ProjectReference Include="..\ChannelMediatorSampleShared\ChannelMediatorSampleShared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="appsettings.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
+</Project>

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -27,12 +21,18 @@ internal sealed class QueueReadersHostedService : IHostedService, IAsyncDisposab
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        var options = _serviceProvider.GetRequiredService<AzureServiceBusOptions>();
+        if (options.ProcessMode == AzureServiceBusMode.Mock)
+        {
+            return;
+        }
+
         var client = _serviceProvider.GetRequiredService<Azure.Messaging.ServiceBus.ServiceBusClient>();
         var entityManager = _serviceProvider.GetRequiredService<AzureServiceBusEntityManager>();
 
-        foreach (var options in QueueReaderRegistry.GetRegisteredOptions())
+        foreach (var readerOptions in QueueReaderRegistry.GetRegisteredOptions())
         {
-            var reader = new QueueReader(client, entityManager, options, _serviceProvider, _logger);
+            var reader = new QueueReader(client, entityManager, readerOptions, _serviceProvider, _logger);
             _readers.Add(reader);
             await reader.StartAsync(cancellationToken).ConfigureAwait(false);
         }

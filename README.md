@@ -1,23 +1,23 @@
 ﻿# 🚀 ChannelMediator
 
-Un médiateur moderne et performant pour .NET, basé sur `System.Threading.Channels`, avec **compatibilité complète MediatR**.
+A modern, high-performance mediator for .NET, built on `System.Threading.Channels`, with **full MediatR compatibility**.
 
-## ✨ Caractéristiques
+## ✨ Features
 
-- ✅ **Compatible MediatR** - API familière (`Send` / `Publish`)
-- ✅ **Channel-Based** - Traitement asynchrone avec backpressure naturelle
-- ✅ **Pipeline Behaviors** - Globaux ET spécifiques
-- ✅ **Parallel Notifications** - Diffusion séquentielle ou parallèle
-- ✅ **High Performance** - ValueTask, Channel, optimisations modernes
-- ✅ **.NET 10** - Code moderne avec C# 14
+- ✅ **MediatR Compatible** - Familiar API (`Send` / `Publish`)
+- ✅ **Channel-Based** - Asynchronous processing with natural backpressure
+- ✅ **Pipeline Behaviors** - Global AND specific
+- ✅ **Parallel Notifications** - Sequential or parallel broadcasting
+- ✅ **High Performance** - ValueTask, Channel, modern optimizations
+- ✅ **.NET 10** - Modern code with C# 14
 
 ## 📦 Installation
 
 ```bash
-# Package (à venir)
+# Package (coming soon)
 dotnet add package ChannelMediator
 
-# Ou référence locale
+# Or local reference
 <ProjectReference Include="..\ChannelMediator\ChannelMediator.csproj" />
 ```
 
@@ -32,7 +32,7 @@ using System.Reflection;
 
 var services = new ServiceCollection();
 
-// Enregistrer le médiateur
+// Register the mediator
 services.AddChannelMediator(
     config => config.Strategy = NotificationPublishStrategy.Parallel,
     Assembly.GetExecutingAssembly());
@@ -41,7 +41,7 @@ var provider = services.BuildServiceProvider();
 var mediator = provider.GetRequiredService<IMediator>();
 ```
 
-### Définir une Request
+### Define a Request
 
 ```csharp
 // Request
@@ -57,19 +57,19 @@ public class AddToCartHandler : IRequestHandler<AddToCartRequest, CartItem>
         AddToCartRequest request, 
         CancellationToken cancellationToken)
     {
-        // Logique métier
+        // Business logic
         return new CartItem(request.ProductCode, 1, 19.99m);
     }
 }
 ```
 
-### Utilisation
+### Usage
 
 ```csharp
-// API Native (recommandée)
+// Native API (recommended)
 var cart = await mediator.InvokeAsync(new AddToCartRequest("ABC123"));
 
-// API MediatR (compatible)
+// MediatR API (compatible)
 var cart = await mediator.Send(new AddToCartRequest("ABC123"));
 ```
 
@@ -79,7 +79,7 @@ var cart = await mediator.Send(new AddToCartRequest("ABC123"));
 // Notification
 public record ProductAddedNotification(string ProductCode, int Quantity) : INotification;
 
-// Handlers (multiple handlers possibles)
+// Handlers (multiple handlers supported)
 public class LogHandler : INotificationHandler<ProductAddedNotification>
 {
     public ValueTask HandleAsync(ProductAddedNotification notification, CancellationToken ct)
@@ -97,16 +97,16 @@ public class EmailHandler : INotificationHandler<ProductAddedNotification>
     }
 }
 
-// Utilisation - API Native
+// Usage - Native API
 await mediator.PublishAsync(new ProductAddedNotification("ABC123", 1));
 
-// Utilisation - API MediatR
+// Usage - MediatR API
 await mediator.Publish(new ProductAddedNotification("ABC123", 1));
 ```
 
 ## 🎭 Pipeline Behaviors
 
-### Behaviors Globaux (pour TOUS les requests)
+### Global Behaviors (for ALL requests)
 
 ```csharp
 public class LoggingBehavior<TRequest, TResponse> 
@@ -125,12 +125,12 @@ public class LoggingBehavior<TRequest, TResponse>
     }
 }
 
-// Enregistrement
+// Registration
 services.AddOpenPipelineBehavior(typeof(LoggingBehavior<,>));
 services.AddOpenPipelineBehavior(typeof(PerformanceMonitoringBehavior<,>));
 ```
 
-### Behaviors Spécifiques (pour un type de request)
+### Specific Behaviors (for a specific request type)
 
 ```csharp
 public class ValidationBehavior<TRequest, TResponse> 
@@ -142,7 +142,7 @@ public class ValidationBehavior<TRequest, TResponse>
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        // Validation spécifique
+        // Specific validation
         if (request is AddToCartRequest { ProductCode: null or "" })
             throw new ArgumentException("ProductCode required");
             
@@ -150,24 +150,24 @@ public class ValidationBehavior<TRequest, TResponse>
     }
 }
 
-// Enregistrement
+// Registration
 services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddToCartRequest, CartItem>>();
 ```
 
-## 📊 APIs Disponibles
+## 📊 Available APIs
 
-| Méthode | Type Retour | Description | Style |
-|---------|-------------|-------------|-------|
-| `InvokeAsync` | `ValueTask<T>` | Exécute un request | **Native** |
-| `Send` | `Task<T>` | Exécute un request | **MediatR** |
-| `PublishAsync` | `ValueTask` | Publie une notification | **Native** |
-| `Publish` | `Task` | Publie une notification | **MediatR** |
+| Method | Return Type | Description | Style |
+|--------|-------------|-------------|-------|
+| `InvokeAsync` | `ValueTask<T>` | Executes a request | **Native** |
+| `Send` | `Task<T>` | Executes a request | **MediatR** |
+| `PublishAsync` | `ValueTask` | Publishes a notification | **Native** |
+| `Publish` | `Task` | Publishes a notification | **MediatR** |
 
-**Les deux APIs coexistent** - choisissez celle que vous préférez !
+**Both APIs coexist** - choose whichever you prefer!
 
-## 🔥 Avantages vs MediatR
+## 🔥 Advantages vs MediatR
 
-| Fonctionnalité | MediatR | ChannelMediator |
+| Feature | MediatR | ChannelMediator |
 |----------------|---------|-----------------|
 | API Compatible | ✅ | ✅ |
 | Pipeline Behaviors | ✅ | ✅ |
@@ -179,9 +179,9 @@ services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddT
 
 ## 📚 Documentation
 
-- [🔄 Compatibilité MediatR](./MEDIATR_COMPATIBILITY.md)
+- [🔄 MediatR Compatibility](./MEDIATR_COMPATIBILITY.md)
 - [🎭 Pipeline Behaviors](./PIPELINE_BEHAVIORS.md)
-- [📊 Diagramme de Séquence](./SEQUENCE_DIAGRAM.md)
+- [📊 Sequence Diagram](./SEQUENCE_DIAGRAM.md)
 
 ## 🏗️ Architecture
 
@@ -194,47 +194,47 @@ Channel (async queue)
   ↓
 RequestHandlerWrapper
   ↓
-Pipeline Behaviors (chaîne)
+Pipeline Behaviors (chain)
   ├─ Global Behavior 1
   ├─ Global Behavior 2
   ├─ Specific Behavior 1
-  └─ Request Handler (métier)
+  └─ Request Handler (business logic)
 ```
 
-## 🎯 Cas d'Usage
+## 🎯 Use Cases
 
-### Parfait pour:
-- ✅ Applications avec forte charge (backpressure)
-- ✅ Microservices avec patterns CQRS
-- ✅ Migration depuis MediatR (drop-in replacement)
-- ✅ APIs REST / gRPC avec orchestration complexe
+### Perfect for:
+- ✅ High-load applications (backpressure)
+- ✅ Microservices with CQRS patterns
+- ✅ Migration from MediatR (drop-in replacement)
+- ✅ REST / gRPC APIs with complex orchestration
 - ✅ Event-driven architectures
 
-### Exemples:
-- **E-commerce**: Commandes, panier, checkout
-- **CMS**: Publication, workflow, notifications
-- **IoT**: Télémétrie, commandes, événements
+### Examples:
+- **E-commerce**: Orders, cart, checkout
+- **CMS**: Publishing, workflow, notifications
+- **IoT**: Telemetry, commands, events
 - **Finance**: Transactions, audit, reporting
 
-## ⚙️ Configuration Avancée
+## ⚙️ Advanced Configuration
 
-### Notifications Parallèles
+### Parallel Notifications
 
 ```csharp
 services.AddChannelMediator(config => 
     config.Strategy = NotificationPublishStrategy.Parallel);
 
-// Tous les handlers s'exécutent en parallèle avec Task.WhenAll
+// All handlers execute in parallel with Task.WhenAll
 await mediator.PublishAsync(notification);
 ```
 
-### Notifications Séquentielles
+### Sequential Notifications
 
 ```csharp
 services.AddChannelMediator(config => 
     config.Strategy = NotificationPublishStrategy.Sequential);
 
-// Les handlers s'exécutent l'un après l'autre
+// Handlers execute one after another
 await mediator.PublishAsync(notification);
 ```
 
@@ -259,33 +259,33 @@ public async Task Should_Handle_Request()
 }
 ```
 
-## 🔧 Compatibilité
+## 🔧 Compatibility
 
-- **.NET 10** (peut être rétro-porté à .NET 8)
-- **C# 14** (peut être adapté pour C# 12)
+- **.NET 10** (can be back-ported to .NET 8)
+- **C# 14** (can be adapted for C# 12)
 - **Microsoft.Extensions.DependencyInjection 9.0+**
 
-## 📝 Licence
+## 📝 License
 
-MIT (à définir)
+MIT (to be defined)
 
-## 👥 Contribution
+## 👥 Contributing
 
-Les contributions sont les bienvenues ! Ouvrez une issue ou un PR.
+Contributions are welcome! Open an issue or a PR.
 
 ## 🙏 Inspirations
 
-- [MediatR](https://github.com/jbogard/MediatR) - L'original et toujours excellent
-- [System.Threading.Channels](https://docs.microsoft.com/dotnet/api/system.threading.channels) - La base de notre implémentation
+- [MediatR](https://github.com/jbogard/MediatR) - The original and still excellent
+- [System.Threading.Channels](https://docs.microsoft.com/dotnet/api/system.threading.channels) - The foundation of our implementation
 
-## ⭐ Pourquoi ChannelMediator ?
+## ⭐ Why ChannelMediator?
 
-1. **Performance** - Channel + ValueTask = rapide
-2. **Flexibilité** - API native + API MediatR
-3. **Moderne** - .NET 10, C# 14, patterns modernes
-4. **Puissant** - Behaviors globaux, parallel notifications
-5. **Familier** - Compatible MediatR, migration facile
+1. **Performance** - Channel + ValueTask = fast
+2. **Flexibility** - Native API + MediatR API
+3. **Modern** - .NET 10, C# 14, modern patterns
+4. **Powerful** - Global behaviors, parallel notifications
+5. **Familiar** - MediatR compatible, easy migration
 
 ---
 
-**Fait avec ❤️ pour la communauté .NET**
+**Made with ❤️ for the .NET community**

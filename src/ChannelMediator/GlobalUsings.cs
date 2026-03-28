@@ -8,5 +8,3 @@ global using System.Threading.Channels;
 global using System.Threading.Tasks;
 
 global using Microsoft.Extensions.DependencyInjection;
-
-[assembly: InternalsVisibleTo("ChannelMediator.Tests")]

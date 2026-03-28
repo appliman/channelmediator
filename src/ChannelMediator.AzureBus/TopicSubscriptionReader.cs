@@ -98,6 +98,8 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
         _processor.ProcessMessageAsync += ProcessMessageAsync;
         _processor.ProcessErrorAsync += ProcessErrorAsync;
 
+        _logger.LogInformation("Start reading messages from topic {Topic} and subscription {Subscription}.", _options.TopicName, _options.SubscriptionName);
+
         await _processor.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -134,10 +136,9 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
                 return;
             }
 
-            // If is not a notification, process as request wrapper
-            if (!messageType.IsAssignableFrom(typeof(INotification)))
+            if (!typeof(INotification).IsAssignableFrom(messageType))
             {
-                await ProcessRequestWrapperMessageAsync(args.Message).ConfigureAwait(false);
+                _logger.LogWarning("Message type '{MessageTypeName}' does not implement INotification on topic {Topic}/{Subscription}. MessageId: {MessageId}", messageTypeName, _options.TopicName, _options.SubscriptionName, args.Message.MessageId);
                 return;
             }
 
@@ -166,7 +167,8 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
             throw new InvalidOperationException("IMediator is not registered in the service provider.");
         }
 
-        await mediator.Publish(notification, cancellationToken).ConfigureAwait(false);
+        _logger.LogTrace("Publishing notification of type {NotificationType} from topic {Topic}/{Subscription}.", notification.GetType().FullName, _options.TopicName, _options.SubscriptionName);
+		await mediator.Publish(notification, cancellationToken).ConfigureAwait(false);
     }
 
     private Task ProcessErrorAsync(ProcessErrorEventArgs args)
@@ -176,52 +178,6 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
         _logger.LogError("Entity path: {EntityPath}", args.EntityPath);
 
         return Task.CompletedTask;
-    }
-
-    private async Task ProcessRequestWrapperMessageAsync(ServiceBusReceivedMessage message)
-    {
-        if (_options.Handler is null)
-        {
-            _logger.LogWarning("No handler configured for topic {Topic}/{Subscription}. MessageId: {MessageId}", _options.TopicName, _options.SubscriptionName, message.MessageId);
-            return;
-        }
-
-        var request = JsonSerializer.Deserialize(message.Body.ToArray(), _options.MessageType, _jsonOptions);
-        if (request is null)
-        {
-            _logger.LogWarning("Failed to deserialize wrapper message of type {RequestType} on topic {Topic}/{Subscription}. MessageId: {MessageId}", _options.MessageType.FullName, _options.TopicName, _options.SubscriptionName, message.MessageId);
-            return;
-        }
-
-        var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
-        if (mediator is null)
-        {
-            _logger.LogError("IMediator is not registered in the service provider while processing wrapper message on {Topic}/{Subscription}.", _options.TopicName, _options.SubscriptionName);
-            throw new InvalidOperationException("IMediator is not registered in the service provider.");
-        }
-
-        // Invoke the handler using reflection to call the delegate
-        try
-        {
-            var handlerType = _options.Handler.GetType();
-            var invokeMethod = handlerType.GetMethod("Invoke");
-            if (invokeMethod is not null)
-            {
-                var result = invokeMethod.Invoke(_options.Handler, new object[] { mediator, request });
-                if (result is Task task)
-                {
-                    await task.ConfigureAwait(false);
-                }
-            }
-            else
-            {
-                _logger.LogError("Handler for topic {Topic}/{Subscription} does not expose an Invoke method. MessageId: {MessageId}", _options.TopicName, _options.SubscriptionName, message.MessageId);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error invoking handler for message {MessageId} on topic {Topic}/{Subscription}", message.MessageId, _options.TopicName, _options.SubscriptionName);
-        }
     }
 
 

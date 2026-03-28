@@ -93,7 +93,9 @@ internal sealed class QueueReader : IAsyncDisposable
         _processor.ProcessMessageAsync += ProcessMessageAsync;
         _processor.ProcessErrorAsync += ProcessErrorAsync;
 
-        await _processor.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Starting queue reader for {QueueName} handling messages of type {MessageType}.", _options.QueueName, _options.RequestType.FullName);
+
+		await _processor.StartProcessingAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -130,7 +132,7 @@ internal sealed class QueueReader : IAsyncDisposable
             }
 
             // Verify if this message implements IRequest or IRequest<TResponse>
-            if (!messageType.IsAssignableFrom(typeof(IRequest))
+            if (!typeof(IRequest).IsAssignableFrom(messageType)
                 && !messageType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
             {
                 await ProcessRequestWrapperMessageAsync(args.Message).ConfigureAwait(false);
@@ -151,7 +153,8 @@ internal sealed class QueueReader : IAsyncDisposable
                 throw new InvalidOperationException("IMediator is not registered in the service provider.");
             }
 
-            await mediator.Send(request).ConfigureAwait(false);
+            _logger.LogTrace("Processing message {MessageId} of type {MessageType} on queue {QueueName}.", args.Message.MessageId, messageType.FullName, _options.QueueName);
+			await mediator.Send(request).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
