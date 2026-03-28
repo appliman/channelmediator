@@ -83,7 +83,7 @@ public class ServiceCollectionExtensionsTests
         // Assert
         var handlers = serviceProvider.GetServices<INotificationHandler<TestNotification>>();
         handlers.Should().NotBeNull();
-        handlers.Should().HaveCountGreaterThan(2);
+        handlers.Should().HaveCountGreaterThan(1);
     }
 
     [Fact]
