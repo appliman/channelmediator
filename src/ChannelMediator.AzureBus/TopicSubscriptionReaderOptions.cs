@@ -25,11 +25,6 @@ public sealed class TopicSubscriptionReaderOptions
     public required Type MessageType { get; set; }
 
     /// <summary>
-    /// Gets or sets the handler associated with the current instance.
-    /// </summary>
-    internal object Handler { get; set; } = default!;
-
-    /// <summary>
     /// Gets or sets the maximum number of concurrent calls to the message handler.
     /// Default is 1.
     /// </summary>

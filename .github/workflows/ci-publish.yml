@@ -1,0 +1,124 @@
+﻿name: Build, Test & Publish to NuGet
+
+on:
+  push:
+    branches: [main, marc/dev]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION_FILE: ChannelMediator.slnx
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test src/ChannelMediator.Tests/ChannelMediator.Tests.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/**'
+          retention-days: 14
+
+  publish:
+    name: Pack & Publish to NuGet
+    needs: build-and-test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build Release
+        run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+
+      - name: Pack ChannelMediator.Contracts
+        run: >
+          dotnet pack src/ChannelMediator.Contracts/ChannelMediator.Contracts.csproj
+          --no-build
+          --configuration Release
+          -p:PackageVersion=${{ steps.version.outputs.VERSION }}
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator
+        run: >
+          dotnet pack src/ChannelMediator/ChannelMediator.csproj
+          --no-build
+          --configuration Release
+          -p:PackageVersion=${{ steps.version.outputs.VERSION }}
+          --output ./nupkgs
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs
+          path: ./nupkgs/*.nupkg
+          retention-days: 14
+
+      - name: Publish to NuGet.org
+        run: >
+          dotnet nuget push ./nupkgs/*.nupkg
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

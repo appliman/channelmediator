@@ -38,12 +38,6 @@ public class ProcessOrderRequestHandler : IRequestHandler<ProcessOrderRequest, O
 			$"Your order for {cartItem.ProductCode} has been processed. Total: {cartItem.Total:C}");
 		await _mediator.Send(emailCommand, cancellationToken);
 
-		// Step 4: Publish notification (optional - demonstrates event publishing)
-		Console.WriteLine($"[ProcessOrderRequestHandler] Step 4: Publishing notification...");
-		await _mediator.GlobalNotify(
-			new ProductAddedNotification(cartItem.ProductCode, cartItem.Quantity, cartItem.Total), 
-			cancellationToken);
-
 		Console.WriteLine($"[ProcessOrderRequestHandler] Order processing completed for {request.OrderId}");
 		
 		return new OrderResult(request.OrderId, cartItem, EmailSent: true, Logged: true);

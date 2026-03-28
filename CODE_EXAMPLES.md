@@ -1,20 +1,20 @@
-﻿# 📖 ChannelMediator - Exemples de Code
+﻿# 📖 ChannelMediator - Code Examples
 
-Ce document contient des exemples pratiques pour tous les cas d'usage courants.
+This document contains practical examples for all common use cases.
 
-## Table des Matières
-- [Configuration de Base](#configuration-de-base)
+## Table of Contents
+- [Basic Configuration](#basic-configuration)
 - [Requests & Responses](#requests--responses)
 - [Notifications](#notifications)
 - [Pipeline Behaviors](#pipeline-behaviors)
-- [Migration depuis MediatR](#migration-depuis-mediatr)
-- [Patterns Avancés](#patterns-avancés)
+- [Migrating from MediatR](#migrating-from-mediatr)
+- [Advanced Patterns](#advanced-patterns)
 
 ---
 
-## Configuration de Base
+## Basic Configuration
 
-### Setup Minimal
+### Minimal Setup
 
 ```csharp
 using ChannelMediator;
@@ -23,28 +23,28 @@ using System.Reflection;
 
 var services = new ServiceCollection();
 
-// Configuration minimale
+// Minimal configuration
 services.AddChannelMediator(Assembly.GetExecutingAssembly());
 
 var provider = services.BuildServiceProvider();
 var mediator = provider.GetRequiredService<IMediator>();
 ```
 
-### Setup avec Behaviors
+### Setup with Behaviors
 
 ```csharp
 var services = new ServiceCollection();
 
-// Configuration avec notifications parallèles
+// Configuration with parallel notifications
 services.AddChannelMediator(
     config => config.Strategy = NotificationPublishStrategy.Parallel,
     Assembly.GetExecutingAssembly());
 
-// Behaviors globaux (tous les requests)
+// Global behaviors (all requests)
 services.AddOpenPipelineBehavior(typeof(LoggingBehavior<,>));
 services.AddOpenPipelineBehavior(typeof(PerformanceMonitoringBehavior<,>));
 
-// Behaviors spécifiques
+// Specific behaviors
 services.AddPipelineBehavior<CreateOrderRequest, Order, ValidationBehavior<CreateOrderRequest, Order>>();
 
 var provider = services.BuildServiceProvider();
@@ -55,15 +55,15 @@ var mediator = provider.GetRequiredService<IMediator>();
 
 ## Requests & Responses
 
-### Exemple Simple
+### Simple Example
 
 ```csharp
-// 1. Définir la request et la response
+// 1. Define the request and response
 public record GetUserRequest(int UserId) : IRequest<User>;
 
 public record User(int Id, string Name, string Email);
 
-// 2. Créer le handler
+// 2. Create the handler
 public class GetUserHandler : IRequestHandler<GetUserRequest, User>
 {
     private readonly IUserRepository _repository;
@@ -86,15 +86,15 @@ public class GetUserHandler : IRequestHandler<GetUserRequest, User>
     }
 }
 
-// 3. Utiliser le médiateur
-// API Native
+// 3. Use the mediator
+// Native API
 var user = await mediator.InvokeAsync(new GetUserRequest(123), cancellationToken);
 
-// API MediatR
+// MediatR API
 var user = await mediator.Send(new GetUserRequest(123), cancellationToken);
 ```
 
-### Exemple avec Dépendances
+### Example with Dependencies
 
 ```csharp
 public record CreateOrderRequest(int UserId, List<OrderItem> Items) : IRequest<OrderCreated>;
@@ -126,16 +126,16 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, OrderCreat
     {
         _logger.LogInformation("Creating order for user {UserId}", request.UserId);
 
-        // 1. Vérifier l'inventaire
+        // 1. Check inventory
         await _inventoryService.ReserveAsync(request.Items, cancellationToken);
 
-        // 2. Calculer le total
+        // 2. Calculate total
         var total = request.Items.Sum(i => i.Price * i.Quantity);
 
-        // 3. Créer la commande
+        // 3. Create the order
         var orderId = await _orderRepo.CreateAsync(request.UserId, request.Items, total, cancellationToken);
 
-        // 4. Traiter le paiement
+        // 4. Process payment
         await _paymentService.ProcessAsync(orderId, total, cancellationToken);
 
         _logger.LogInformation("Order {OrderId} created successfully", orderId);
@@ -144,7 +144,7 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, OrderCreat
     }
 }
 
-// Utilisation
+// Usage
 var result = await mediator.InvokeAsync(
     new CreateOrderRequest(userId: 123, items: cartItems),
     cancellationToken);
@@ -152,7 +152,7 @@ var result = await mediator.InvokeAsync(
 Console.WriteLine($"Order {result.OrderId} created: {result.TotalAmount:C}");
 ```
 
-### Exemple avec Cache
+### Example with Cache
 
 ```csharp
 public record GetProductRequest(string ProductCode) : IRequest<Product>;
@@ -174,16 +174,16 @@ public class GetProductHandler : IRequestHandler<GetProductRequest, Product>
     {
         var cacheKey = $"product:{request.ProductCode}";
 
-        // Essayer le cache d'abord
+        // Try cache first
         if (_cache.TryGetValue<Product>(cacheKey, out var cachedProduct))
         {
             return cachedProduct!;
         }
 
-        // Cache miss - aller chercher en DB
+        // Cache miss - fetch from DB
         var product = await _repository.GetByCodeAsync(request.ProductCode, cancellationToken);
 
-        // Mettre en cache pour 5 minutes
+        // Cache for 5 minutes
         _cache.Set(cacheKey, product, TimeSpan.FromMinutes(5));
 
         return product;
@@ -195,13 +195,13 @@ public class GetProductHandler : IRequestHandler<GetProductRequest, Product>
 
 ## Notifications
 
-### Notification Simple
+### Simple Notification
 
 ```csharp
-// 1. Définir la notification
+// 1. Define the notification
 public record UserRegisteredNotification(int UserId, string Email) : INotification;
 
-// 2. Créer les handlers (plusieurs possibles)
+// 2. Create the handlers (multiple handlers supported)
 public class SendWelcomeEmailHandler : INotificationHandler<UserRegisteredNotification>
 {
     private readonly IEmailService _emailService;
@@ -262,34 +262,34 @@ public class LogUserRegistrationHandler : INotificationHandler<UserRegisteredNot
     }
 }
 
-// 3. Publier la notification
+// 3. Publish the notification
 await mediator.PublishAsync(
     new UserRegisteredNotification(userId: 123, email: "user@example.com"),
     cancellationToken);
 ```
 
-### Notifications en Parallèle vs Séquentiel
+### Parallel vs Sequential Notifications
 
 ```csharp
-// Configuration PARALLÈLE (recommandé pour handlers indépendants)
+// PARALLEL configuration (recommended for independent handlers)
 services.AddChannelMediator(config => 
     config.Strategy = NotificationPublishStrategy.Parallel);
 
-// Les 3 handlers s'exécutent en PARALLÈLE
+// All 3 handlers execute in PARALLEL
 await mediator.PublishAsync(new UserRegisteredNotification(123, "user@example.com"));
-// → SendWelcomeEmailHandler       } En parallèle
-// → CreateUserProfileHandler      } avec Task.WhenAll
+// → SendWelcomeEmailHandler       } In parallel
+// → CreateUserProfileHandler      } with Task.WhenAll
 // → LogUserRegistrationHandler    }
 
-// Configuration SÉQUENTIELLE (pour handlers avec dépendances)
+// SEQUENTIAL configuration (for handlers with dependencies)
 services.AddChannelMediator(config => 
     config.Strategy = NotificationPublishStrategy.Sequential);
 
-// Les handlers s'exécutent l'un APRÈS l'autre
+// Handlers execute one AFTER another
 await mediator.PublishAsync(new OrderCreatedNotification(orderId));
-// → ReserveInventoryHandler    (d'abord)
-// → ProcessPaymentHandler      (puis)
-// → SendConfirmationHandler    (enfin)
+// → ReserveInventoryHandler    (first)
+// → ProcessPaymentHandler      (then)
+// → SendConfirmationHandler    (finally)
 ```
 
 ---
@@ -333,7 +333,7 @@ public class LoggingBehavior<TRequest, TResponse>
     }
 }
 
-// Enregistrement (s'applique à TOUS les requests)
+// Registration (applies to ALL requests)
 services.AddOpenPipelineBehavior(typeof(LoggingBehavior<,>));
 ```
 
@@ -390,11 +390,11 @@ public class PerformanceMonitoringBehavior<TRequest, TResponse>
     }
 }
 
-// Enregistrement
+// Registration
 services.AddOpenPipelineBehavior(typeof(PerformanceMonitoringBehavior<,>));
 ```
 
-### Validation Behavior (Spécifique)
+### Validation Behavior (Specific)
 
 ```csharp
 public class ValidationBehavior<TRequest, TResponse> 
@@ -413,7 +413,7 @@ public class ValidationBehavior<TRequest, TResponse>
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        // Valider la requête
+        // Validate the request
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
 
         if (!validationResult.IsValid)
@@ -425,11 +425,11 @@ public class ValidationBehavior<TRequest, TResponse>
     }
 }
 
-// Enregistrement (seulement pour CreateOrderRequest)
+// Registration (only for CreateOrderRequest)
 services.AddPipelineBehavior<CreateOrderRequest, Order, ValidationBehavior<CreateOrderRequest, Order>>();
 ```
 
-### Retry Behavior (Spécifique)
+### Retry Behavior (Specific)
 
 ```csharp
 public class RetryBehavior<TRequest, TResponse> 
@@ -467,7 +467,7 @@ public class RetryBehavior<TRequest, TResponse>
             }
         }
 
-        // Dernier essai sans catch
+        // Last attempt without catch
         return await next();
     }
 
@@ -480,7 +480,7 @@ public class RetryBehavior<TRequest, TResponse>
 }
 ```
 
-### Transaction Behavior (Spécifique)
+### Transaction Behavior (Specific)
 
 ```csharp
 public class TransactionBehavior<TRequest, TResponse> 
@@ -523,16 +523,16 @@ public class TransactionBehavior<TRequest, TResponse>
     }
 }
 
-// Enregistrement (seulement pour les commandes qui modifient la DB)
+// Registration (only for commands that modify the DB)
 services.AddPipelineBehavior<CreateOrderRequest, Order, TransactionBehavior<CreateOrderRequest, Order>>();
 services.AddPipelineBehavior<UpdateInventoryRequest, Unit, TransactionBehavior<UpdateInventoryRequest, Unit>>();
 ```
 
 ---
 
-## Migration depuis MediatR
+## Migrating from MediatR
 
-### Avant (MediatR)
+### Before (MediatR)
 
 ```csharp
 // Startup.cs / Program.cs
@@ -558,7 +558,7 @@ public class OrdersController : ControllerBase
 }
 ```
 
-### Après (ChannelMediator) - Changement Minimal
+### After (ChannelMediator) - Minimal Change
 
 ```csharp
 // Startup.cs / Program.cs
@@ -566,10 +566,10 @@ services.AddChannelMediator(
     config => config.Strategy = NotificationPublishStrategy.Parallel,
     Assembly.GetExecutingAssembly());
 
-// Controller - AUCUN CHANGEMENT NÉCESSAIRE !
+// Controller - NO CHANGES NEEDED!
 public class OrdersController : ControllerBase
 {
-    private readonly IMediator _mediator; // ← Même interface
+    private readonly IMediator _mediator; // ← Same interface
 
     public OrdersController(IMediator mediator)
     {
@@ -579,7 +579,7 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
     {
-        var result = await _mediator.Send(request); // ← Même appel !
+        var result = await _mediator.Send(request); // ← Same call!
         return Ok(result);
     }
 }
@@ -587,7 +587,7 @@ public class OrdersController : ControllerBase
 
 ---
 
-## Patterns Avancés
+## Advanced Patterns
 
 ### CQRS (Command Query Responsibility Segregation)
 
@@ -604,12 +604,12 @@ public record UpdateProductCommand(int Id, string Name, decimal Price) : IComman
 public record GetProductQuery(int Id) : IQuery<ProductDto>;
 public record ListProductsQuery(int PageSize, int PageNumber) : IQuery<List<ProductDto>>;
 
-// Behaviors spécifiques aux Commands
+// Behaviors specific to Commands
 public class CommandTransactionBehavior<TCommand, TResponse> 
     : IPipelineBehavior<TCommand, TResponse>
     where TCommand : ICommand<TResponse>
 {
-    // Transactions seulement pour les commands
+    // Transactions only for commands
 }
 
 services.AddPipelineBehavior<CreateProductCommand, int, CommandTransactionBehavior<CreateProductCommand, int>>();
@@ -649,7 +649,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserRequest, Result<User>
     }
 }
 
-// Utilisation
+// Usage
 var result = await mediator.InvokeAsync(new CreateUserRequest("test@example.com", "password"));
 
 if (result.IsSuccess)
@@ -682,7 +682,7 @@ public class OrderCreatedEventHandler : INotificationHandler<OrderCreatedEvent>
     }
 }
 
-// Command handler qui publie des events
+// Command handler that publishes events
 public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, Guid>
 {
     private readonly IMediator _mediator;
@@ -690,10 +690,10 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, Guid>
     public async ValueTask<Guid> HandleAsync(CreateOrderRequest request, CancellationToken ct)
     {
         var orderId = Guid.NewGuid();
-        
-        // ... créer la commande ...
 
-        // Publier l'event
+        // ... create the order ...
+
+        // Publish the event
         await _mediator.PublishAsync(new OrderCreatedEvent(orderId, request.UserId, total), ct);
 
         return orderId;
@@ -705,17 +705,17 @@ public class CreateOrderHandler : IRequestHandler<CreateOrderRequest, Guid>
 
 ## 🎓 Best Practices
 
-1. **Nommer les Requests clairement**: `CreateOrderRequest`, `GetUserQuery`
-2. **Handlers simples**: Une seule responsabilité
-3. **Behaviors pour cross-cutting concerns**: Logging, validation, transactions
-4. **Parallel notifications** pour handlers indépendants
-5. **Sequential notifications** pour workflows avec dépendances
-6. **CancellationToken** toujours propagé
-7. **Exceptions** pour les erreurs, `Result<T>` pour la logique métier
+1. **Name Requests clearly**: `CreateOrderRequest`, `GetUserQuery`
+2. **Simple Handlers**: Single responsibility
+3. **Behaviors for cross-cutting concerns**: Logging, validation, transactions
+4. **Parallel notifications** for independent handlers
+5. **Sequential notifications** for workflows with dependencies
+6. **CancellationToken** always propagated
+7. **Exceptions** for errors, `Result<T>` for business logic
 
 ---
 
-**Pour plus d'informations, consultez les autres documents:**
+**For more information, see the other documents:**
 - [README.md](./README.md)
 - [MEDIATR_COMPATIBILITY.md](./MEDIATR_COMPATIBILITY.md)
 - [PIPELINE_BEHAVIORS.md](./PIPELINE_BEHAVIORS.md)

@@ -1,5 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System.Reflection;
+﻿using System.Reflection;
 
 using ChannelMediator;
 using ChannelMediator.AzureBus;
@@ -19,9 +18,11 @@ host.ConfigureServices((context, services) =>
 	{
 		config.Strategy = NotificationPublishStrategy.Parallel;
 
-		config.UseAzureServiceBus(opts =>
+		config.UseChannelMediatorAzureBus(opts =>
 		{
+			opts.Prefix = "sampleapp";
 			opts.ConnectionString = connectionString!;
+			opts.TopicSubscriberName = "my-subscriber-name";
 		});
 
 	}, Assembly.GetExecutingAssembly());
@@ -33,12 +34,8 @@ await app.StartAsync();
 
 var mediator = app.Services.GetRequiredService<IMediator>();
 
-// await mediator.GlobalPublish(new ProductAddedNotification("test", 123, 9.99m));
-
 await mediator.EnqueueRequest(new MyRequest("enqueue-test"));
-await mediator.Enqueue("my-custom-queue", new NotRequest() { Value = 5 });
-
-await mediator.GlobalPublish("my-message-broadcast", new FreeMessage() { Value = 10 });
+await mediator.Notify(new ProductAddedNotification("p01",10, 100));
 
 Console.WriteLine("Notification published. Press any key to exit.");
 Console.ReadLine();

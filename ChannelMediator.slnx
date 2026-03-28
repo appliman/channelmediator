@@ -1,24 +1,23 @@
 <Solution>
   <Folder Name="/1-Core/">
-    <Project Path="src\ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj" Id="732b6c4d-91fa-417e-a6d8-57637a0a5f55" />
     <Project Path="src\ChannelMediator.Contracts/ChannelMediator.Contracts.csproj" />
     <Project Path="src\ChannelMediator/ChannelMediator.csproj" />
   </Folder>
-  <Folder Name="/2-Samples/">
-    <Project Path="src/BlazorAppSample/BlazorAppSample.csproj" Id="168a7a09-1e47-4b4a-a562-b3c0e626f699" />
-    <Project Path="src/ChannelMediatorSampleShared/ChannelMediatorSampleShared.csproj" />
-    <Project Path="src\ChannelMediatorConsole/ChannelMediatorSampleConsole.csproj" />
-    <Project Path="src\ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" Id="89670ec7-756b-484c-8a8f-7c115cef3d25" />
-    <Project Path="src\ChannelMediatorSampleNotificationWriterConsole/ChannelMediatorSampleNotificationWriterConsole.csproj" Id="df64e59c-b7f8-4cba-b342-570bd5d73982" />
+  <Folder Name="/2-PubSub/">
+    <Project Path="src/ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj" />
+  </Folder>
+  <Folder Name="/3-Samples/">
+    <Project Path="src/Samples/BlazorAppSample/BlazorAppSample.csproj" />
+    <Project Path="src/Samples/ChannelMediatorConsole/ChannelMediatorSampleConsole.csproj" />
+    <Project Path="src/Samples/ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" />
+    <Project Path="src/Samples/ChannelMediatorSampleNotificationWriterConsole/ChannelMediatorSampleNotificationWriterConsole.csproj" />
+    <Project Path="src/Samples/ChannelMediatorSampleShared/ChannelMediatorSampleShared.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".azure-pipelines/workflows/azure-pipeline.yml" />
     <File Path=".azure-pipelines/workflows/channelmediator-publish.yml" />
     <File Path="CODE_EXAMPLES.md" />
-    <File Path="MEDIATR_COMPATIBILITY.md" />
-    <File Path="PIPELINE_BEHAVIORS.md" />
     <File Path="README.md" />
-    <File Path="SEQUENCE_DIAGRAM.md" />
   </Folder>
   <Project Path="src\ChannelMediator.Performance/ChannelMediator.Performance.csproj">
     <BuildType Project="Release" />

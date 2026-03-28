@@ -11,7 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
+    <ProjectReference Include="..\..\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
