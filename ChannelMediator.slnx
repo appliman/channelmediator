@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/2-PubSub/">
     <Project Path="src/ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj" />
+    <Project Path="src/ChannelMediator.RabbitMQ/ChannelMediator.RabbitMQ.csproj" />
   </Folder>
   <Folder Name="/3-Samples/">
     <Project Path="src/Samples/BlazorAppSample/BlazorAppSample.csproj" />
@@ -12,6 +13,8 @@
     <Project Path="src/Samples/ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" />
     <Project Path="src/Samples/ChannelMediatorSampleNotificationWriterConsole/ChannelMediatorSampleNotificationWriterConsole.csproj" />
     <Project Path="src/Samples/ChannelMediatorSampleShared/ChannelMediatorSampleShared.csproj" />
+    <Project Path="src/Samples/RabbitMqSampleReaderConsole/RabbitMqSampleReaderConsole.csproj" />
+    <Project Path="src/Samples/RabbitMqSampleWriterConsole/RabbitMqSampleWriterConsole.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".azure-pipelines/workflows/azure-pipeline.yml" />

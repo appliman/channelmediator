@@ -3,6 +3,7 @@
 [![NuGet ChannelMediator](https://img.shields.io/nuget/v/ChannelMediator?label=ChannelMediator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator/)
 [![NuGet ChannelMediator.Contracts](https://img.shields.io/nuget/v/ChannelMediator.Contracts?label=ChannelMediator.Contracts&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.Contracts/)
 [![NuGet ChannelMediator.AzureBus](https://img.shields.io/nuget/v/ChannelMediator.AzureBus?label=ChannelMediator.AzureBus&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.AzureBus/)
+[![NuGet ChannelMediator.RabbitMQ](https://img.shields.io/nuget/v/ChannelMediator.RabbitMQ?label=ChannelMediator.RabbitMQ&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.RabbitMQ/)
 [![Build](https://github.com/appliman/channelmediator/actions/workflows/ci-publish.yml/badge.svg)](https://github.com/appliman/channelmediator/actions)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp)](https://learn.microsoft.com/dotnet/csharp/)
@@ -17,6 +18,7 @@ A modern, high-performance mediator for .NET, built on `System.Threading.Channel
 - ✅ **Parallel Notifications** - Sequential or parallel broadcasting
 - ✅ **High Performance** - Channel-based with modern optimizations
 - ✅ **Azure Service Bus** - Distributed messaging with queues and topics
+- ✅ **RabbitMQ** - Self-hosted distributed messaging with exchanges and queues
 - ✅ **.NET 10** - Modern code with C# 14
 
 ## 📦 Installation
@@ -168,6 +170,7 @@ services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddT
 ## 📚 Documentation
 
 - [🚌 Azure Service Bus Integration](./AZURE_SERVICE_BUS.md)
+- [🐇 RabbitMQ Integration](./RABBITMQ.md)
 - [🔄 MediatR Compatibility](./MEDIATR_COMPATIBILITY.md)
 - [🎭 Pipeline Behaviors](./PIPELINE_BEHAVIORS.md)
 - [📊 Sequence Diagram](./SEQUENCE_DIAGRAM.md)
@@ -212,6 +215,27 @@ await mediator.EnqueueRequest(new MyRequest("process-order-42"));
 Supports **Live** mode (real Azure Service Bus) and **Mock** mode (in-process for local development). Queues, topics, and subscriptions are created automatically on first use.
 
 👉 **[Full documentation →](./AZURE_SERVICE_BUS.md)**
+
+## 🐇 RabbitMQ Integration
+
+For self-hosted or on-premise scenarios, `ChannelMediator.RabbitMQ` provides the same distributed messaging patterns using **RabbitMQ**:
+
+- **`mediator.NotifyRabbitMq(notification)`** → Publishes to a **Fanout Exchange** (fan-out to all bound queues)
+- **`mediator.EnqueueRabbitMqRequest(request)`** → Enqueues to a **Queue** (competing consumers, only one processes each message)
+
+```csharp
+var mediator = app.Services.GetRequiredService<IMediator>();
+
+// Fan-out notification to all subscriber services
+await mediator.NotifyRabbitMq(new ProductAddedNotification("SKU-001", 5, 49.95m));
+
+// Enqueue a request for competing consumer processing
+await mediator.EnqueueRabbitMqRequest(new MyRequest("process-order-42"));
+```
+
+Supports **Live** mode (real RabbitMQ broker) and **Mock** mode (in-process for local development). Exchanges, queues, and bindings are created automatically on first use.
+
+👉 **[Full documentation →](./RABBITMQ.md)**
 
 ## 🎯 Use Cases
 
