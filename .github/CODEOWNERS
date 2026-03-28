@@ -1,0 +1,5 @@
+﻿# CODEOWNERS — every pull request requires review from the repository owner.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: require review from @appliman and @chouteau for ALL files
+*   @appliman @chouteau
