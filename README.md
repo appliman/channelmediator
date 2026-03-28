@@ -1,5 +1,12 @@
 ﻿# 🚀 ChannelMediator
 
+[![NuGet ChannelMediator](https://img.shields.io/nuget/v/ChannelMediator?label=ChannelMediator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator/)
+[![NuGet ChannelMediator.Contracts](https://img.shields.io/nuget/v/ChannelMediator.Contracts?label=ChannelMediator.Contracts&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.Contracts/)
+[![NuGet ChannelMediator.AzureBus](https://img.shields.io/nuget/v/ChannelMediator.AzureBus?label=ChannelMediator.AzureBus&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.AzureBus/)
+[![Build](https://github.com/appliman/channelmediator/actions/workflows/ci-publish.yml/badge.svg)](https://github.com/appliman/channelmediator/actions)
+[![.NET](https://img.shields.io/badge/.NET-10.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp)](https://learn.microsoft.com/dotnet/csharp/)
+
 A modern, high-performance mediator for .NET, built on `System.Threading.Channels`, with **full MediatR compatibility**.
 
 ## ✨ Features

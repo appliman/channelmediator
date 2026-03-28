@@ -21,7 +21,10 @@ var host = Host.CreateDefaultBuilder(args)
 				opts.Prefix = "sampleapp";
 				opts.ConnectionString = connectionString!;
 				opts.TopicSubscriberName = "my-subscriber-name";
-            });
+
+				opts.AddAzureQueueRequestReader<MyRequest>();
+				opts.AddAllAzureBusTopicNotification();
+			});
 
 		}, Assembly.GetExecutingAssembly());
 

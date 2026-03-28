@@ -1,0 +1,10 @@
+﻿{
+  "profiles": {
+    "ChannelMediatorSampleNotificationWriterConsole": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

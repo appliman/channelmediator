@@ -185,7 +185,7 @@ using ChannelMediator.AzureBus;
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
-        var connectionString = context.Configuration.GetConnectionString("AzureBus");
+        var connectionString = context.Configuration.GetConnectionString("AzureBusConnectionString");
 
         services.AddChannelMediator(config =>
         {
@@ -386,7 +386,9 @@ Automatically subscribe to all topics that match the configured prefix:
 opts.AddAllAzureBusTopicNotification();
 ```
 
-This discovers all existing topics in the Azure Service Bus namespace that start with `opts.Prefix` and creates subscriptions for each one using `opts.TopicSubscriberName`.
+At startup, the `TopicSubscriptionReadersHostedService` enumerates all existing topics in the Azure Service Bus namespace, filters those starting with `opts.Prefix`, and creates a subscription reader for each one using `opts.TopicSubscriberName`. Handlers are resolved dynamically by deserializing the `AssemblyQualifiedName` from the message's `ApplicationProperties`.
+
+> **Note:** `AddAllAzureBusTopicNotification()` requires both `TopicSubscriberName` and `Prefix` to be set. If either is empty, the call is silently ignored.
 
 ```mermaid
 graph TB
@@ -421,18 +423,6 @@ opts.AddAzureQueueRequestReader<MyRequest>();
 ```
 
 The queue name is derived automatically from the type name and prefix.
-
-### Custom Queue Reader
-
-For arbitrary message types or custom processing logic:
-
-```csharp
-opts.AddAzureBusQueueReader<FreeMessage>("myapp-custom-queue", async (mediator, message) =>
-{
-    // Custom handling logic
-    Console.WriteLine($"Received: {message}");
-});
-```
 
 ---
 
@@ -624,7 +614,6 @@ graph TB
 | `AddAzureBusTopicNotificationReader<T>(subscriptionName)` | Register a reader for a specific notification topic |
 | `AddAllAzureBusTopicNotification()` | Subscribe to all topics matching the prefix |
 | `AddAzureQueueRequestReader<T>(queueName?, configure?)` | Register a reader for a specific request queue |
-| `AddAzureBusQueueReader<T>(queueName, handler, configure?)` | Register a custom queue reader with a delegate handler |
 
 ### Extension Methods on `IMediator`
 
@@ -651,29 +640,31 @@ public record MyRequest(string Message) : IRequest;
 ### Producer (Writer Console)
 
 ```csharp
-var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
+var host = Host.CreateDefaultBuilder(args);
+
+host.ConfigureServices((context, services) =>
+{
+    var connectionString = context.Configuration["ConnectionStrings:AzureBusConnectionString"];
+
+    services.AddChannelMediator(config =>
     {
-        var connectionString = context.Configuration.GetConnectionString("AzureBus");
+        config.Strategy = NotificationPublishStrategy.Parallel;
 
-        services.AddChannelMediator(config =>
+        config.UseChannelMediatorAzureBus(opts =>
         {
-            config.Strategy = NotificationPublishStrategy.Parallel;
+            opts.Prefix = "sampleapp";
+            opts.ConnectionString = connectionString!;
+            opts.TopicSubscriberName = "my-subscriber-name";
+        });
 
-            config.UseChannelMediatorAzureBus(opts =>
-            {
-                opts.Prefix = "sampleapp";
-                opts.ConnectionString = connectionString!;
-                opts.TopicSubscriberName = "my-subscriber-name";
-            });
+    }, Assembly.GetExecutingAssembly());
+});
 
-        }, Assembly.GetExecutingAssembly());
-    })
-    .Build();
+var app = host.Build();
 
-await host.StartAsync();
+await app.StartAsync();
 
-var mediator = host.Services.GetRequiredService<IMediator>();
+var mediator = app.Services.GetRequiredService<IMediator>();
 
 // Enqueue a request (delivered to exactly one consumer)
 await mediator.EnqueueRequest(new MyRequest("enqueue-test"));
@@ -688,7 +679,7 @@ await mediator.Notify(new ProductAddedNotification("p01", 10, 100));
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
-        var connectionString = context.Configuration.GetConnectionString("AzureBus");
+        var connectionString = context.Configuration.GetConnectionString("AzureBusConnectionString");
 
         services.AddChannelMediator(config =>
         {
@@ -700,12 +691,11 @@ var host = Host.CreateDefaultBuilder(args)
                 opts.ConnectionString = connectionString!;
                 opts.TopicSubscriberName = "my-subscriber-name";
 
-                // Read from specific notification topic
-                opts.AddAzureBusTopicNotificationReader<ProductAddedNotification>(
-                    "my-subscriber-name");
-
-                // Read from request queue
+                // Read from request queue (competing consumers)
                 opts.AddAzureQueueRequestReader<MyRequest>();
+
+                // Subscribe to ALL topics matching the prefix (fan-out)
+                opts.AddAllAzureBusTopicNotification();
             });
 
         }, Assembly.GetExecutingAssembly());
@@ -781,6 +771,57 @@ graph TB
 
 > **Topics** deliver a copy to every subscription (fan-out).
 > **Queues** deliver each message to exactly one competing consumer (load balancing).
+
+---
+
+## 🔐 Connection String with User Secrets
+
+For local development, store the Azure Service Bus connection string in **.NET User Secrets** — never commit it to `appsettings.json`.
+
+### 1. Add a `UserSecretsId` in your `.csproj`
+
+```xml
+<PropertyGroup>
+    <UserSecretsId>channelmediator-sample-notification-writer-console</UserSecretsId>
+</PropertyGroup>
+```
+
+### 2. Set the secret
+
+```bash
+dotnet user-secrets set "ConnectionStrings:AzureBusConnectionString" "Endpoint=sb://your-namespace.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR_KEY"
+```
+
+The secret is stored at:
+- **Windows:** `%APPDATA%\Microsoft\UserSecrets\<UserSecretsId>\secrets.json`
+- **Linux/macOS:** `~/.microsoft/usersecrets/<UserSecretsId>/secrets.json`
+
+### 3. Set `DOTNET_ENVIRONMENT=Development`
+
+> ⚠️ **Important:** `Host.CreateDefaultBuilder` only loads user secrets when the environment is `Development`. For console apps, the default environment is `Production`, which means **user secrets are not loaded**.
+
+Create a `Properties/launchSettings.json` in your console project:
+
+```json
+{
+  "profiles": {
+    "YourProjectName": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+### 4. Read the connection string in code
+
+```csharp
+// Both forms are equivalent:
+var connectionString = context.Configuration["ConnectionStrings:AzureBusConnectionString"];
+var connectionString = context.Configuration.GetConnectionString("AzureBusConnectionString");
+```
 
 ---
 
