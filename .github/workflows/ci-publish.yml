@@ -109,6 +109,13 @@ jobs:
           --configuration Release
           --output ./nupkgs
 
+      - name: Pack ChannelMediator.RabbitMQ
+        run: >
+          dotnet pack src/ChannelMediator.RabbitMQ/ChannelMediator.RabbitMQ.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
         with:
