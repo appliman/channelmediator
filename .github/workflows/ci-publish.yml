@@ -60,6 +60,7 @@ jobs:
   publish:
     name: Pack & Publish to NuGet
     needs: build-and-test
+    if: success()
     runs-on: ubuntu-latest
 
     permissions:
