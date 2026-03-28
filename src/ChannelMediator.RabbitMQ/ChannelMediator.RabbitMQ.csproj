@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net9.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.0.6.0</Version>
+    <PackageProjectUrl>https://github.com/appliman/channelmediator</PackageProjectUrl>
+    <Description>RabbitMQ integration for ChannelMediator — distributed messaging with queues and exchanges.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChannelMediator\ChannelMediator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <Content Include="$(OutputPath)\ChannelMediator.dll">
+      <BuildAction>None</BuildAction>
+      <PackagePath>lib\net9.0</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Content Include="$(OutputPath)\ChannelMediator.dll">
+      <BuildAction>None</BuildAction>
+      <PackagePath>lib\net10.0</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+</Project>
