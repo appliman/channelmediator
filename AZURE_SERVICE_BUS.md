@@ -150,7 +150,7 @@ sequenceDiagram
 All queue and topic names are automatically built using the configured prefix and the type name:
 
 ```
-{prefix}-{typeName}
+{prefix}{typeName}
 ```
 
 For example, with `Prefix = "myapp"`:

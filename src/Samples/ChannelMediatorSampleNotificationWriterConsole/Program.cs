@@ -20,7 +20,7 @@ host.ConfigureServices((context, services) =>
 
 		config.UseChannelMediatorAzureBus(opts =>
 		{
-			opts.Prefix = "sampleapp";
+			opts.Prefix = "sampleapp-";
 			opts.ConnectionString = connectionString!;
 			opts.TopicSubscriberName = "my-subscriber-name";
 		});
