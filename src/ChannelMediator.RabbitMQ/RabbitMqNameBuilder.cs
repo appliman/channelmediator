@@ -11,8 +11,8 @@ internal static class RabbitMqNameBuilder
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         var combined = !string.IsNullOrWhiteSpace(prefix)
-            ? $"{prefix}-{name}"
-            : $"{DefaultPrefix}-{name}";
+            ? $"{prefix}{name}"
+            : $"{DefaultPrefix}{name}";
 
         return NormalizeName(combined);
     }

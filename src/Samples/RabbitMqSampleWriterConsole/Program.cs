@@ -35,8 +35,8 @@ await app.StartAsync();
 
 var mediator = app.Services.GetRequiredService<IMediator>();
 
-await mediator.EnqueueRabbitMqRequest(new MyRequest("enqueue-test-via-rabbitmq"));
-await mediator.NotifyRabbitMq(new ProductAddedNotification("p01", 10, 100));
+await mediator.EnqueueRequest(new MyRequest("enqueue-test-via-rabbitmq"));
+await mediator.Notify(new ProductAddedNotification("p01", 10, 100));
 
 Console.WriteLine("Notification published to RabbitMQ. Press any key to exit.");
 Console.ReadLine();

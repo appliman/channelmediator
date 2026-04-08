@@ -27,7 +27,7 @@ public static class MediatorExtensions
     /// <param name="mediator">The mediator instance.</param>
     /// <param name="notification">The notification to publish.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    public static Task NotifyRabbitMq<TNotification>(this IMediator mediator, TNotification notification, CancellationToken cancellationToken = default)
+    public static Task Notify<TNotification>(this IMediator mediator, TNotification notification, CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
         ArgumentNullException.ThrowIfNull(mediator);
@@ -53,7 +53,7 @@ public static class MediatorExtensions
     /// <param name="mediator">The mediator instance.</param>
     /// <param name="request">The request to enqueue.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    public static Task EnqueueRabbitMqRequest<R>(this IMediator mediator, R request, CancellationToken cancellationToken = default)
+    public static Task EnqueueRequest<R>(this IMediator mediator, R request, CancellationToken cancellationToken = default)
         where R : IRequest
     {
         ArgumentNullException.ThrowIfNull(mediator);

@@ -132,8 +132,10 @@ internal sealed class QueueReader : IAsyncDisposable
             }
 
             // Verify if this message implements IRequest or IRequest<TResponse>
-            if (!typeof(IRequest).IsAssignableFrom(messageType)
-                && !messageType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
+            var implementsRequest = typeof(IRequest).IsAssignableFrom(messageType)
+                || messageType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>));
+
+            if (!implementsRequest)
             {
                 await ProcessRequestWrapperMessageAsync(args.Message).ConfigureAwait(false);
                 return;

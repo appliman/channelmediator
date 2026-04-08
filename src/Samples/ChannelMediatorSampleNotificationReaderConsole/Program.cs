@@ -18,7 +18,7 @@ var host = Host.CreateDefaultBuilder(args)
 
 			config.UseChannelMediatorAzureBus(opts =>
 			{
-				opts.Prefix = "sampleapp";
+				opts.Prefix = "sampleapp-";
 				opts.ConnectionString = connectionString!;
 				opts.TopicSubscriberName = "my-subscriber-name";
 

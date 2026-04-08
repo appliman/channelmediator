@@ -46,7 +46,7 @@ internal sealed class AzureServiceBusEntityManager
         try
         {
             // Check if the topic exists in Azure Service Bus
-            if (!await _adminClient.TopicExistsAsync(topicName, cancellationToken).ConfigureAwait(false))
+            if (!await _adminClient.TopicExistsAsync(topicName, cancellationToken).ConfigureAwait(true))
             {
                 _logger.LogInformation("Topic '{TopicName}' does not exist. Creating...", topicName);
 
@@ -93,7 +93,7 @@ internal sealed class AzureServiceBusEntityManager
         try
         {
             // Check if the queue exists in Azure Service Bus
-            if (!await _adminClient.QueueExistsAsync(queueName, cancellationToken).ConfigureAwait(false))
+            if (!await _adminClient.QueueExistsAsync(queueName, cancellationToken).ConfigureAwait(true))
             {
                 _logger.LogInformation("Queue '{QueueName}' does not exist. Creating...", queueName);
 
@@ -156,7 +156,7 @@ internal sealed class AzureServiceBusEntityManager
         try
         {
             // Check if the subscription exists in Azure Service Bus
-            if (!await _adminClient.SubscriptionExistsAsync(topicName, subscriptionName, cancellationToken).ConfigureAwait(false))
+            if (!await _adminClient.SubscriptionExistsAsync(topicName, subscriptionName, cancellationToken).ConfigureAwait(true))
             {
                 _logger.LogInformation("Subscription '{SubscriptionKey}' does not exist. Creating...", subscriptionKey);
 
