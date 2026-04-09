@@ -1,17 +1,30 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net10.0;net9.0</TargetFrameworks>
+   <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.7.0</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<Version>1.0.8.0</Version>
+    <Authors>AppliMan</Authors>
 		<PackageProjectUrl>https://github.com/appliman/channelmediator</PackageProjectUrl>
+   <RepositoryUrl>https://github.com/appliman/channelmediator</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<PackageTags>ChannelMediator;Contracts;Abstractions;Mediator;Channels;Messaging</PackageTags>
 		<Description>Contracts and abstractions for the ChannelMediator library — a high-performance mediator built on System.Threading.Channels.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.201" PrivateAssets="All" />
 	</ItemGroup>
 
 </Project>

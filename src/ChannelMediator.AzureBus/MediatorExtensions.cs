@@ -85,6 +85,7 @@ public static class MediatorExtensions
         _ = Task.Run(() => publisher.EnqueueRequest(request, cancellationToken), cancellationToken);
         return Task.CompletedTask;
     }
+
 }
 
 /// <summary>

@@ -21,6 +21,7 @@ internal sealed class TopicSubscriptionReadersHostedService : IHostedService, IA
     /// Initializes a new instance of the <see cref="TopicSubscriptionReadersHostedService"/> class.
     /// </summary>
     /// <param name="serviceProvider">The service provider.</param>
+    /// <param name="logger">The logger used to record hosted service activity.</param>
     public TopicSubscriptionReadersHostedService(IServiceProvider serviceProvider, 
         ILogger<TopicSubscriptionReadersHostedService> logger)
     {

@@ -5,10 +5,12 @@
 [![NuGet ChannelMediator.AzureBus](https://img.shields.io/nuget/v/ChannelMediator.AzureBus?label=ChannelMediator.AzureBus&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.AzureBus/)
 [![NuGet ChannelMediator.RabbitMQ](https://img.shields.io/nuget/v/ChannelMediator.RabbitMQ?label=ChannelMediator.RabbitMQ&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.RabbitMQ/)
 [![Build](https://github.com/appliman/channelmediator/actions/workflows/ci-publish.yml/badge.svg)](https://github.com/appliman/channelmediator/actions)
-[![.NET](https://img.shields.io/badge/.NET-10.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp)](https://learn.microsoft.com/dotnet/csharp/)
 
 A modern, high-performance mediator for .NET, built on `System.Threading.Channels`, with **full MediatR compatibility**.
+
+Compatible with **.NET 8**, **.NET 9**, and **.NET 10**.
 
 ## ✨ Features
 
@@ -19,7 +21,7 @@ A modern, high-performance mediator for .NET, built on `System.Threading.Channel
 - ✅ **High Performance** - Channel-based with modern optimizations
 - ✅ **Azure Service Bus** - Distributed messaging with queues and topics
 - ✅ **RabbitMQ** - Self-hosted distributed messaging with exchanges and queues
-- ✅ **.NET 10** - Modern code with C# 14
+- ✅ **.NET 8 / 9 / 10** - Multi-targeted packages for current .NET versions
 
 ## 📦 Installation
 

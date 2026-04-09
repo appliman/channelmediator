@@ -71,6 +71,9 @@ public sealed class AzureServiceBusOptions
 
 	internal bool SubscribeToAllTopics { get; set; } = true;
 
+   /// <summary>
+	/// Registers readers for all Azure Service Bus topics that match the configured prefix.
+	/// </summary>
 	public void AddAllAzureBusTopicNotification()
 	{
 		if (string.IsNullOrWhiteSpace(TopicSubscriberName))
@@ -124,6 +127,12 @@ public sealed class AzureServiceBusOptions
 			ServiceDescriptor.Singleton<Microsoft.Extensions.Hosting.IHostedService, TopicSubscriptionReadersHostedService>());
 	}
 
+   /// <summary>
+	/// Adds a queue reader for a specific request type with optional configuration.
+	/// </summary>
+	/// <typeparam name="TRequest">The request type handled by the queue reader.</typeparam>
+	/// <param name="queueName">The optional queue name. When omitted, the request type name is used.</param>
+	/// <param name="configure">An optional action used to customize the queue reader options.</param>
 	public void AddAzureQueueRequestReader<TRequest>(
 		string? queueName = null,
 		Action<QueueReaderOptions>? configure = null)

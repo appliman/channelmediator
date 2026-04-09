@@ -2,7 +2,7 @@
 
 using ChannelMediatorSampleShared;
 
-namespace ChannelMediatorSampleNotificationReaderConsole;
+namespace AzureBusReaderSampleReaderConsole;
 
 public sealed class UpdateInventoryHandler : INotificationHandler<ProductAddedNotification>
 {

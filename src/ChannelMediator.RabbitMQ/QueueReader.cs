@@ -152,9 +152,9 @@ internal sealed class QueueReader : IAsyncDisposable
             if (request is IRequest nonGenericRequest)
             {
                 await mediator.Send(nonGenericRequest).ConfigureAwait(false);
-            } 
-            else if (request.GetType() == typeof(IRequest<>))
-            {
+            }
+			else if (request.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
+			{
                 dynamic genericRequest = request;
 				await mediator.Send(genericRequest).ConfigureAwait(false);
 			}

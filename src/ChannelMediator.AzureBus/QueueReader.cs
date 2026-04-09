@@ -30,6 +30,7 @@ internal sealed class QueueReader : IAsyncDisposable
     /// <param name="entityManager">The entity manager for creating topics/subscriptions.</param>
     /// <param name="options">The reader options.</param>
     /// <param name="serviceProvider">The service provider for resolving handlers.</param>
+    /// <param name="logger">The logger used to record queue reader activity.</param>
     public QueueReader(
         ServiceBusClient client,
         AzureServiceBusEntityManager entityManager,
@@ -160,10 +161,10 @@ internal sealed class QueueReader : IAsyncDisposable
             {
                 await mediator.Send(simpleRequest).ConfigureAwait(false);
             }
-            else if (request.GetType() == typeof(IRequest<>))
+			else if (request.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
 			{
-                dynamic wrapper = request;
-				await mediator.Send(wrapper).ConfigureAwait(false);
+                dynamic genericRequest = request;
+				await mediator.Send(genericRequest).ConfigureAwait(false);
 			}
             else
             {

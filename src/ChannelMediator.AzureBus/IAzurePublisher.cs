@@ -10,7 +10,7 @@ internal interface IAzurePublisher
     /// Notifies the appropriate Azure Service Bus topic with a notification
     /// based on the notification type registration in the TopicSubscriptionReaderRegistry.
     /// </summary>
-    /// <typeparam name="TNotification">The type of the notification.</typeparam>
+    /// <typeparam name="T">The type of the notification.</typeparam>
     /// <param name="notification">The notification to publish.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
@@ -23,6 +23,7 @@ internal interface IAzurePublisher
     /// <summary>
     /// Enqueues the specified request for asynchronous processing.
     /// </summary>
+    /// <typeparam name="R">The type of request to enqueue.</typeparam>
     /// <param name="request">The request object to be enqueued. Cannot be null.</param>
     /// <param name="cancellationToken">A cancellation token that can be used to cancel the enqueue operation.</param>
     /// <returns>A task that represents the asynchronous enqueue operation.</returns>

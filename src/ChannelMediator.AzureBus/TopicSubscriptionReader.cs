@@ -30,6 +30,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
     /// <param name="entityManager">The entity manager for creating topics/subscriptions.</param>
     /// <param name="options">The reader options.</param>
     /// <param name="serviceProvider">The service provider for resolving handlers.</param>
+    /// <param name="logger">The logger used to record topic subscription reader activity.</param>
     public TopicSubscriptionReader(
         ServiceBusClient client,
         AzureServiceBusEntityManager entityManager,
