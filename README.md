@@ -53,6 +53,19 @@ var provider = services.BuildServiceProvider();
 var mediator = provider.GetRequiredService<IMediator>();
 ```
 
+> [!IMPORTANT]
+> If multiple handlers are found for the same request, only the first registered handler is kept and the others are ignored.
+> When you pass multiple assemblies to `AddChannelMediator`, the declaration order determines which handler is selected by default.
+> Put the assembly containing your preferred default handler first.
+
+```csharp
+services.AddChannelMediator(
+    assemblies: [
+        typeof(MyPreferredHandler).Assembly,
+        typeof(MyFallbackHandler).Assembly
+    ]);
+```
+
 ### Define a Request
 
 ```csharp

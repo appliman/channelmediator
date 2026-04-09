@@ -119,6 +119,7 @@ public static class ServiceCollectionExtensions
 	{
 		var handlerInterfaceType = typeof(IRequestHandler<,>);
 		var commandHandlerInterfaceType = typeof(IRequestHandler<>);
+		var registeredRequestTypes = new HashSet<Type>();
 
 		foreach (var assembly in assemblies)
 		{
@@ -142,6 +143,11 @@ public static class ServiceCollectionExtensions
 					var requestType = genericArgs[0];
 					var responseType = genericArgs[1];
 
+					if (!registeredRequestTypes.Add(requestType) || services.Any(sd => sd.ServiceType == handlerInterface))
+					{
+						continue;
+					}
+
 					services.AddScoped(handlerInterface, handlerType);
 
 					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
@@ -163,12 +169,15 @@ public static class ServiceCollectionExtensions
 					var requestType = commandHandlerInterface.GetGenericArguments()[0];
 					var responseType = typeof(Unit);
 
+					if (!registeredRequestTypes.Add(requestType) || services.Any(sd => sd.ServiceType == commandHandlerInterface))
+					{
+						continue;
+					}
+
 					// Register the command handler interface
 					services.AddScoped(commandHandlerInterface, handlerType);
 
-					// Also register as IRequestHandler<TRequest, Unit> for consistency
-					var genericHandlerInterface = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
-					
+				
 					// Create a wrapper that bridges IRequestHandler<TRequest> to IRequestHandler<TRequest, Unit>
 					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
 					services.AddSingleton(typeof(IRequestHandlerWrapper), sp =>
