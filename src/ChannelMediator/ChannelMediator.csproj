@@ -4,7 +4,7 @@
 		<TargetFrameworks>net10.0;net9.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>1.0.10.0</Version>
+		<Version>1.0.11.0</Version>
 		<PackageProjectUrl>https://github.com/appliman/channelmediator</PackageProjectUrl>
 		<Description>A modern, high-performance mediator for .NET built on System.Threading.Channels, with full MediatR compatibility. Supports pipeline behaviors, parallel notifications, and Azure Service Bus.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>

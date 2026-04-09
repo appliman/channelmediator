@@ -168,7 +168,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
         }
 
         _logger.LogTrace("Publishing notification of type {NotificationType} from topic {Topic}/{Subscription}.", notification.GetType().FullName, _options.TopicName, _options.SubscriptionName);
-		await mediator.Publish(notification, cancellationToken).ConfigureAwait(false);
+		await mediator.Publish((INotification)notification, cancellationToken).ConfigureAwait(false);
     }
 
     private Task ProcessErrorAsync(ProcessErrorEventArgs args)
