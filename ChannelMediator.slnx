@@ -8,10 +8,10 @@
     <Project Path="src/ChannelMediator.RabbitMQ/ChannelMediator.RabbitMQ.csproj" />
   </Folder>
   <Folder Name="/3-Samples/">
+    <Project Path="src/Samples/AzureBusReaderSampleConsole/AzureBusReaderSampleConsole.csproj" />
+    <Project Path="src/Samples/AzureBusWriterSampleConsole/AzureBusWriterSampleConsole.csproj" />
     <Project Path="src/Samples/BlazorAppSample/BlazorAppSample.csproj" />
     <Project Path="src/Samples/ChannelMediatorConsole/ChannelMediatorSampleConsole.csproj" />
-    <Project Path="src/Samples/ChannelMediatorSampleNotificationReaderConsole/ChannelMediatorSampleNotificationReaderConsole.csproj" />
-    <Project Path="src/Samples/ChannelMediatorSampleNotificationWriterConsole/ChannelMediatorSampleNotificationWriterConsole.csproj" />
     <Project Path="src/Samples/ChannelMediatorSampleShared/ChannelMediatorSampleShared.csproj" />
     <Project Path="src/Samples/RabbitMqSampleReaderConsole/RabbitMqSampleReaderConsole.csproj" />
     <Project Path="src/Samples/RabbitMqSampleWriterConsole/RabbitMqSampleWriterConsole.csproj" />
@@ -30,3 +30,4 @@
   </Project>
   <Project Path="src\ChannelMediator.Tests/ChannelMediator.Tests.csproj" />
 </Solution>
+

@@ -165,7 +165,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
         _logger.LogTrace("Publishing notification of type {NotificationType} from exchange {Exchange}/{Subscription}.",
             notification.GetType().FullName, _options.ExchangeName, _options.SubscriptionName);
 
-        await mediator.Publish(notification, cancellationToken).ConfigureAwait(false);
+        await mediator.Publish((INotification)notification, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

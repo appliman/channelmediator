@@ -6,12 +6,15 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ChannelMediator.AzureBus;
 
+/// <summary>
+/// Provides dependency injection extensions for enabling ChannelMediator Azure Service Bus integration.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
 	/// <summary>
 	/// Adds Azure Service Bus integration using Azure Service Bus options.
 	/// </summary>
-	/// <param name="services">The service collection.</param>
+  /// <param name="configuration">The ChannelMediator configuration being extended.</param>
 	/// <param name="configure">Action to configure Azure Service Bus options.</param>
 	/// <returns>The service collection for chaining.</returns>
 	public static AzureServiceBusOptions UseChannelMediatorAzureBus(

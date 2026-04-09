@@ -1,5 +1,9 @@
 ﻿namespace ChannelMediator;
 
+/// <summary>
+/// Represents a request that returns a response value.
+/// </summary>
+/// <typeparam name="TResponse">The type of response returned by the request.</typeparam>
 public interface IRequest<out TResponse>
 {
 }

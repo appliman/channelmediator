@@ -30,6 +30,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
     /// <param name="entityManager">The entity manager for creating topics/subscriptions.</param>
     /// <param name="options">The reader options.</param>
     /// <param name="serviceProvider">The service provider for resolving handlers.</param>
+    /// <param name="logger">The logger used to record topic subscription reader activity.</param>
     public TopicSubscriptionReader(
         ServiceBusClient client,
         AzureServiceBusEntityManager entityManager,
@@ -168,7 +169,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
         }
 
         _logger.LogTrace("Publishing notification of type {NotificationType} from topic {Topic}/{Subscription}.", notification.GetType().FullName, _options.TopicName, _options.SubscriptionName);
-		await mediator.Publish(notification, cancellationToken).ConfigureAwait(false);
+		await mediator.Publish((INotification)notification, cancellationToken).ConfigureAwait(false);
     }
 
     private Task ProcessErrorAsync(ProcessErrorEventArgs args)

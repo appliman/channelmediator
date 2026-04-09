@@ -6,7 +6,7 @@ using ChannelMediator;
 
 using ChannelMediatorSampleShared;
 
-namespace ChannelMediatorSampleNotificationReaderConsole;
+namespace AzureBusReaderSampleReaderConsole;
 
 internal class MyRequestHandler
 	: IRequestHandler<MyRequest>

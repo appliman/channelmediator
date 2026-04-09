@@ -1,6 +1,6 @@
 ﻿{
   "profiles": {
-    "ChannelMediatorSampleNotificationWriterConsole": {
+    "AzureBusReaderSampleReaderConsole": {
       "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"

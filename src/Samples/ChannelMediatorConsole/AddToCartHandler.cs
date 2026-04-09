@@ -4,18 +4,12 @@ using ChannelMediatorSampleShared;
 
 namespace ChannelMediatorSampleConsole;
 
-public sealed class AddToCartHandler : IRequestHandler<AddToCartRequest, CartItem>
+public sealed class AddToCartHandler(IProductCache cache, IMediator mediator) 
+	: IRequestHandler<AddToCartRequest, CartItem>
 {
-	private readonly IProductCache _cache;
-
-	public AddToCartHandler(IProductCache cache)
+	public async Task<CartItem> Handle(AddToCartRequest request, CancellationToken cancellationToken)
 	{
-		_cache = cache ?? throw new ArgumentNullException(nameof(cache));
-	}
-
-	public async ValueTask<CartItem> HandleAsync(AddToCartRequest request, CancellationToken cancellationToken)
-	{
-		if (_cache.TryGet(request.ProductCode, out var cachedItem))
+		if (cache.TryGet(request.ProductCode, out var cachedItem))
 		{
 			Console.WriteLine($"Cache hit for product: {request.ProductCode}");
 			return cachedItem!;
@@ -25,13 +19,10 @@ public sealed class AddToCartHandler : IRequestHandler<AddToCartRequest, CartIte
 		await Task.Delay(100, cancellationToken).ConfigureAwait(false);
 
 		var cartItem = new CartItem(request.ProductCode, 1, 19.90m);
-		_cache.Set(request.ProductCode, cartItem);
+		cache.Set(request.ProductCode, cartItem);
+
+		await mediator.Publish(new ProductAddedNotification(request.ProductCode, 1, 19.90m), cancellationToken);
 
 		return cartItem;
-	}
-
-	public async Task<CartItem> Handle(AddToCartRequest request, CancellationToken cancellationToken)
-	{
-		return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
-	}
+	}	
 }

@@ -5,7 +5,7 @@ using Azure.Messaging.ServiceBus;
 namespace ChannelMediator.AzureBus;
 
 /// <summary>
-/// Azure Service Bus implementation of <see cref="IMessageBusPublisher"/>.
+/// Azure Service Bus implementation of <see cref="IAzurePublisher"/>.
 /// </summary>
 internal sealed class AzureServiceBusPublisher : IAzurePublisher, IAsyncDisposable
 {

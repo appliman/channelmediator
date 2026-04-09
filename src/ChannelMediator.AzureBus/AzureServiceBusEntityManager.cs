@@ -18,6 +18,7 @@ internal sealed class AzureServiceBusEntityManager
     /// Initializes a new instance of the <see cref="AzureServiceBusEntityManager"/> class.
     /// </summary>
     /// <param name="adminClient">The Service Bus administration client.</param>
+    /// <param name="logger">The logger used to record entity management activity.</param>
     public AzureServiceBusEntityManager(ServiceBusAdministrationClient adminClient, ILogger<AzureServiceBusEntityManager> logger)
     {
         _adminClient = adminClient ?? throw new ArgumentNullException(nameof(adminClient));

@@ -30,6 +30,7 @@ internal sealed class QueueReader : IAsyncDisposable
     /// <param name="entityManager">The entity manager for creating topics/subscriptions.</param>
     /// <param name="options">The reader options.</param>
     /// <param name="serviceProvider">The service provider for resolving handlers.</param>
+    /// <param name="logger">The logger used to record queue reader activity.</param>
     public QueueReader(
         ServiceBusClient client,
         AzureServiceBusEntityManager entityManager,
@@ -156,12 +157,23 @@ internal sealed class QueueReader : IAsyncDisposable
             }
 
             _logger.LogTrace("Processing message {MessageId} of type {MessageType} on queue {QueueName}.", args.Message.MessageId, messageType.FullName, _options.QueueName);
-			await mediator.Send(request).ConfigureAwait(false);
-        }
+            if (request is IRequest simpleRequest)
+            {
+                await mediator.Send(simpleRequest).ConfigureAwait(false);
+            }
+			else if (request.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
+			{
+                dynamic genericRequest = request;
+				await mediator.Send(genericRequest).ConfigureAwait(false);
+			}
+            else
+            {
+                _logger.LogWarning("Deserialized message does not implement IRequest or IRequest<TResponse> as expected for message {MessageId} on queue {QueueName}.", args.Message.MessageId, _options.QueueName);
+			}
+		}
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing message on queue {QueueName}. MessageId: {MessageId}", _options.QueueName, args.Message?.MessageId);
-            // swallow or rethrow? Let ServiceBus processor handle based on ReceiveMode; we log and swallow to avoid crashing the processor thread
         }
     }
 

@@ -5,6 +5,9 @@ using RabbitMQ.Client;
 
 namespace ChannelMediator.RabbitMQ;
 
+/// <summary>
+/// Provides dependency injection extensions for enabling ChannelMediator RabbitMQ integration.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>

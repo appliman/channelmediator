@@ -2,8 +2,18 @@
 
 namespace ChannelMediator;
 
+/// <summary>
+/// Provides dependency injection extensions for registering ChannelMediator services.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+	/// Adds ChannelMediator services and scans the supplied assemblies for handlers.
+	/// </summary>
+	/// <param name="services">The service collection to update.</param>
+	/// <param name="configureNotifications">An optional action used to configure mediator registration.</param>
+	/// <param name="assemblies">The assemblies to scan for handlers. When omitted, the calling assembly is used.</param>
+	/// <returns>The updated <see cref="IServiceCollection"/> instance.</returns>
 	public static IServiceCollection AddChannelMediator(
 		this IServiceCollection services,
 		Action<ChannelMediatorConfiguration>? configureNotifications = null,
@@ -43,6 +53,14 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
+ /// <summary>
+	/// Registers a request handler and its wrapper for mediator dispatch.
+	/// </summary>
+	/// <typeparam name="TRequest">The request type handled by the registration.</typeparam>
+	/// <typeparam name="TResponse">The response type produced by the handler.</typeparam>
+	/// <typeparam name="THandler">The concrete handler implementation.</typeparam>
+	/// <param name="services">The service collection to update.</param>
+	/// <returns>The updated <see cref="IServiceCollection"/> instance.</returns>
 	public static IServiceCollection AddRequestHandler<TRequest, TResponse, THandler>(this IServiceCollection services)
 		where TRequest : IRequest<TResponse>
 		where THandler : class, IRequestHandler<TRequest, TResponse>
@@ -76,7 +94,7 @@ public static class ServiceCollectionExtensions
 	/// <summary>
 	/// Registers a global pipeline behavior that will be applied to all request handlers.
 	/// The behavior type must implement IPipelineBehavior marker interface and be an open generic type.
-	/// Example: typeof(LoggingBehavior<,>)
+ /// Example: <c>typeof(LoggingBehavior&lt;,&gt;)</c>
 	/// </summary>
 	public static IServiceCollection AddOpenPipelineBehavior(this IServiceCollection services, Type behaviorType)
 	{

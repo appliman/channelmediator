@@ -70,45 +70,6 @@ public class MediatorTests
 	}
 
 	[Fact]
-	public async Task Send_WithCommandAsObject_ExecutesViaCreateCommandInvoker()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		services.AddChannelMediator(null, typeof(TestCommandHandler).Assembly);
-		var serviceProvider = services.BuildServiceProvider();
-		var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-		object command = new TestCommand("object-command-test");
-
-		// Act
-		var result = await mediator.Send(command);
-
-		// Assert
-		Assert.Null(result); // Commands return null
-		Assert.Equal("object-command-test", TestCommandHandler.LastExecutedValue);
-	}
-
-	[Fact]
-	public async Task Send_WithRequestAsObject_ExecutesViaCreateRequestInvoker()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
-		var serviceProvider = services.BuildServiceProvider();
-		var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-		object request = new TestRequest("object-request-test");
-
-		// Act
-		var result = await mediator.Send(request);
-
-		// Assert
-		Assert.NotNull(result);
-		Assert.IsType<TestResponse>(result);
-		Assert.Equal("Handled: object-request-test", ((TestResponse)result!).Result);
-	}
-
-	[Fact]
 	public async Task ServiceProvider_CanDisposeMediator_Synchronously()
 	{
 		// Arrange

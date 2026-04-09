@@ -149,8 +149,21 @@ internal sealed class QueueReader : IAsyncDisposable
             _logger.LogTrace("Processing message of type {MessageType} on queue {QueueName}. DeliveryTag: {DeliveryTag}",
                 messageType.FullName, _options.QueueName, args.DeliveryTag);
 
-            await mediator.Send(request).ConfigureAwait(false);
-        }
+            if (request is IRequest nonGenericRequest)
+            {
+                await mediator.Send(nonGenericRequest).ConfigureAwait(false);
+            }
+			else if (request.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
+			{
+                dynamic genericRequest = request;
+				await mediator.Send(genericRequest).ConfigureAwait(false);
+			}
+            else
+            {
+                _logger.LogWarning("Received message of type {MessageType} does not implement IRequest on queue {QueueName}. DeliveryTag: {DeliveryTag}",
+                    messageType.FullName, _options.QueueName, args.DeliveryTag);
+			}
+		}
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing message on queue {QueueName}. DeliveryTag: {DeliveryTag}",
