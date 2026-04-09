@@ -165,9 +165,7 @@ services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddT
 |--------|-------------|-------------|
 | `Send<TResponse>(IRequest<TResponse>, CancellationToken)` | `Task<TResponse>` | Sends a request to a single handler and returns the response |
 | `Send(IRequest, CancellationToken)` | `Task` | Sends a request without response (command) |
-| `Send(object, CancellationToken)` | `Task<object?>` | Sends a request resolved at runtime |
 | `Publish<TNotification>(TNotification, CancellationToken)` | `Task` | Publishes a notification to multiple handlers |
-| `Publish(object, CancellationToken)` | `Task` | Publishes a notification resolved at runtime |
 
 ## 📚 Documentation
 
@@ -229,10 +227,10 @@ For self-hosted or on-premise scenarios, `ChannelMediator.RabbitMQ` provides the
 var mediator = app.Services.GetRequiredService<IMediator>();
 
 // Fan-out notification to all subscriber services
-await mediator.NotifyRabbitMq(new ProductAddedNotification("SKU-001", 5, 49.95m));
+await mediator.Notify(new ProductAddedNotification("SKU-001", 5, 49.95m));
 
 // Enqueue a request for competing consumer processing
-await mediator.EnqueueRabbitMqRequest(new MyRequest("process-order-42"));
+await mediator.EnqueueRequest(new MyRequest("process-order-42"));
 ```
 
 Supports **Live** mode (real RabbitMQ broker) and **Mock** mode (in-process for local development). Exchanges, queues, and bindings are created automatically on first use.
