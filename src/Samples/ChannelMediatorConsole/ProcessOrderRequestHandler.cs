@@ -20,7 +20,7 @@ public class ProcessOrderRequestHandler : IRequestHandler<ProcessOrderRequest, O
 	public async ValueTask<OrderResult> HandleAsync(ProcessOrderRequest request, CancellationToken cancellationToken)
 	{
 		Console.WriteLine($"[ProcessOrderRequestHandler] Starting order processing for {request.OrderId}");
-		
+
 		// Step 1: Add product to cart (calling another request handler)
 		Console.WriteLine($"[ProcessOrderRequestHandler] Step 1: Adding product to cart...");
 		var cartItem = await _mediator.Send(new AddToCartRequest(request.ProductCode), cancellationToken);
@@ -29,7 +29,7 @@ public class ProcessOrderRequestHandler : IRequestHandler<ProcessOrderRequest, O
 		// Step 2: Log the order (calling a command handler)
 		Console.WriteLine($"[ProcessOrderRequestHandler] Step 2: Logging order...");
 		await _mediator.Send(new LogOrderCommand(request.OrderId, cartItem.Total), cancellationToken);
-		
+
 		// Step 3: Send confirmation email (calling another command handler)
 		Console.WriteLine($"[ProcessOrderRequestHandler] Step 3: Sending confirmation email...");
 		var emailCommand = new SendEmailCommand(
@@ -39,12 +39,12 @@ public class ProcessOrderRequestHandler : IRequestHandler<ProcessOrderRequest, O
 		await _mediator.Send(emailCommand, cancellationToken);
 
 		Console.WriteLine($"[ProcessOrderRequestHandler] Order processing completed for {request.OrderId}");
-		
+
 		return new OrderResult(request.OrderId, cartItem, EmailSent: true, Logged: true);
 	}
 
 	public async Task<OrderResult> Handle(ProcessOrderRequest request, CancellationToken cancellationToken)
 	{
-		return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+		return await HandleAsync(request, cancellationToken);
 	}
 }

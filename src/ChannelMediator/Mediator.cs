@@ -46,9 +46,9 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		var completionSource = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var envelope = new RequestEnvelope<TResponse>(request, completionSource, cancellationToken);
 
-		await _channel.Writer.WriteAsync(envelope, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
+		await _channel.Writer.WriteAsync(envelope, cancellationToken);
 
-		return await completionSource.Task.ConfigureAwait(ChannelMediatorConfiguration.Await);
+		return await completionSource.Task;
 	}
 
 	/// <inheritdoc />
@@ -59,7 +59,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 			throw new ArgumentNullException(nameof(request));
 		}
 
-		await Send<Unit>(request, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
+		await Send<Unit>(request, cancellationToken);
 	}
 
 	/// <inheritdoc />
@@ -77,7 +77,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 			if (value.NotificationType == notification.GetType())
 			{
 				// Bingo !
-				wrapper = value; 
+				wrapper = value;
 				break;
 			}
 		}
@@ -89,11 +89,11 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		if (_notificationConfiguration.Strategy == NotificationPublishStrategy.Parallel)
 		{
-			await PublishParallelAsync(notification, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
+			await PublishParallelAsync(notification, cancellationToken);
 		}
 		else
 		{
-			await PublishSequentialAsync(notification, wrapper, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
+			await PublishSequentialAsync(notification, wrapper, cancellationToken);
 		}
 	}
 
@@ -103,7 +103,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		CancellationToken cancellationToken)
 		where TNotification : INotification
 	{
-		await wrapper.HandleAsync(notification, _serviceProvider, cancellationToken).ConfigureAwait(ChannelMediatorConfiguration.Await);
+		await wrapper.HandleAsync(notification, _serviceProvider, cancellationToken);
 	}
 
 	private async Task PublishParallelAsync<TNotification>(
@@ -117,7 +117,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		var tasks = handlers.Select(handler =>
 			handler.Handle(notification, cancellationToken));
 
-		await Task.WhenAll(tasks).ConfigureAwait(ChannelMediatorConfiguration.Await);
+		await Task.WhenAll(tasks);
 	}
 
 	private async Task ProcessAsync()
@@ -131,9 +131,9 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		}
 		catch (OperationCanceledException)
 		{
-            // Shutdown requested
-        }
-    }
+			// Shutdown requested
+		}
+	}
 
 	private int _disposed;
 
@@ -153,10 +153,10 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		}
 		catch (OperationCanceledException)
 		{
-            // Dead for science
-        }
+			// Dead for science
+		}
 
-        _cts.Dispose();
+		_cts.Dispose();
 	}
 
 	public async ValueTask DisposeAsync()
@@ -175,14 +175,14 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		try
 		{
-			await _pump.ConfigureAwait(ChannelMediatorConfiguration.Await);
+			await _pump;
 		}
 		catch (OperationCanceledException)
 		{
-            // Dead for science
-        }
+			// Dead for science
+		}
 
-        _cts.Dispose();
+		_cts.Dispose();
 	}
 }
 

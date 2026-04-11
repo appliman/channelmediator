@@ -13,7 +13,7 @@ public class TestRequestHandler : IRequestHandler<TestRequest, TestResponse>
 
     public async Task<TestResponse> Handle(TestRequest request, CancellationToken cancellationToken)
     {
-        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+     return await HandleAsync(request, cancellationToken);
     }
 }
 
@@ -28,7 +28,7 @@ public class AnotherTestRequestHandler : IRequestHandler<AnotherTestRequest, int
 
     public async Task<int> Handle(AnotherTestRequest request, CancellationToken cancellationToken)
     {
-        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+     return await HandleAsync(request, cancellationToken);
     }
 }
 
@@ -43,7 +43,7 @@ public class FailingRequestHandler : IRequestHandler<FailingRequest, string>
 
     public async Task<string> Handle(FailingRequest request, CancellationToken cancellationToken)
     {
-        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+     return await HandleAsync(request, cancellationToken);
     }
 }
 
@@ -136,7 +136,7 @@ public class TestCommandHandler : IRequestHandler<TestCommand>
 
     public async Task Handle(TestCommand request, CancellationToken cancellationToken)
     {
-        await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+        await HandleAsync(request, cancellationToken);
     }
 }
 
@@ -151,6 +151,6 @@ public class FailingCommandHandler : IRequestHandler<FailingCommand>
 
     public async Task Handle(FailingCommand request, CancellationToken cancellationToken)
     {
-        await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+        await HandleAsync(request, cancellationToken);
     }
 }
