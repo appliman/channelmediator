@@ -3,6 +3,15 @@
 internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 	: IRequestHandlerWrapper where TRequest : IRequest<TResponse>
 {
+	private static readonly bool IsCommand = typeof(TResponse) == typeof(Unit)
+		&& typeof(TRequest).GetInterfaces().Any(i => i == typeof(IRequest));
+
+	private static readonly Type? CommandHandlerType = IsCommand
+		? typeof(IRequestHandler<>).MakeGenericType(typeof(TRequest))
+		: null;
+
+	private static readonly System.Reflection.MethodInfo? HandleMethod = CommandHandlerType?.GetMethod("Handle");
+
 	private readonly IServiceProvider _serviceProvider;
 
 	public RequestHandlerWrapper(IServiceProvider serviceProvider)
@@ -22,12 +31,10 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 		RequestHandlerDelegate<TResponse> handler;
 
 		// Check if this is a command (IRequest -> IRequest<Unit>)
-		if (typeof(TResponse) == typeof(Unit)
-			&& typeof(TRequest).GetInterfaces().Any(i => i == typeof(IRequest)))
+		if (IsCommand)
 		{
 			// Try to get IRequestHandler<TRequest> first (for commands)
-			var commandHandlerType = typeof(IRequestHandler<>).MakeGenericType(typeof(TRequest));
-			var commandHandler = scope.ServiceProvider.GetService(commandHandlerType);
+			var commandHandler = scope.ServiceProvider.GetService(CommandHandlerType!);
 
 			if (commandHandler != null)
 			{
@@ -35,8 +42,7 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 				{
 					try
 					{
-						var handleMethod = commandHandlerType.GetMethod("Handle");
-						var task = (Task)handleMethod!.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
+						var task = (Task)HandleMethod!.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
 						await task;
 						return (TResponse)(object)Unit.Value;
 					}
