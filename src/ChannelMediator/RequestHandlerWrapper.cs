@@ -35,8 +35,9 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 				{
 					try
 					{
-						var handleMethod = commandHandlerType.GetMethod("Handle");
-						var task = (Task)handleMethod!.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
+						var handleMethod = commandHandlerType.GetMethod("Handle")
+							?? throw new InvalidOperationException($"Handle method not found on {commandHandlerType.Name}");
+						var task = (Task)handleMethod.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
 						await task;
 						return (TResponse)(object)Unit.Value;
 					}

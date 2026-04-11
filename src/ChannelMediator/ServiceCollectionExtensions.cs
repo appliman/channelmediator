@@ -53,7 +53,7 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
- /// <summary>
+	/// <summary>
 	/// Registers a request handler and its wrapper for mediator dispatch.
 	/// </summary>
 	/// <typeparam name="TRequest">The request type handled by the registration.</typeparam>
@@ -94,7 +94,7 @@ public static class ServiceCollectionExtensions
 	/// <summary>
 	/// Registers a global pipeline behavior that will be applied to all request handlers.
 	/// The behavior type must implement IPipelineBehavior marker interface and be an open generic type.
- /// Example: <c>typeof(LoggingBehavior&lt;,&gt;)</c>
+	/// Example: <c>typeof(LoggingBehavior&lt;,&gt;)</c>
 	/// </summary>
 	public static IServiceCollection AddOpenPipelineBehavior(this IServiceCollection services, Type behaviorType)
 	{
@@ -177,7 +177,6 @@ public static class ServiceCollectionExtensions
 					// Register the command handler interface
 					services.AddScoped(commandHandlerInterface, handlerType);
 
-				
 					// Create a wrapper that bridges IRequestHandler<TRequest> to IRequestHandler<TRequest, Unit>
 					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
 					services.AddSingleton(typeof(IRequestHandlerWrapper), sp =>
