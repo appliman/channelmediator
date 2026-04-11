@@ -7,7 +7,7 @@ namespace ChannelMediator;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    /// <summary>
+	/// <summary>
 	/// Adds ChannelMediator services and scans the supplied assemblies for handlers.
 	/// </summary>
 	/// <param name="services">The service collection to update.</param>
@@ -159,9 +159,9 @@ public static class ServiceCollectionExtensions
 
 				// Register IRequestHandler<TRequest> handlers (commands without response)
 				var commandHandlerInterfaces = handlerType.GetInterfaces()
-					.Where(i => i.IsGenericType && 
-					           i.GetGenericTypeDefinition() == commandHandlerInterfaceType &&
-					           !handlerInterfaces.Any(h => h.GetGenericArguments()[0] == i.GetGenericArguments()[0]))
+					.Where(i => i.IsGenericType &&
+							   i.GetGenericTypeDefinition() == commandHandlerInterfaceType &&
+							   !handlerInterfaces.Any(h => h.GetGenericArguments()[0] == i.GetGenericArguments()[0]))
 					.ToList();
 
 				foreach (var commandHandlerInterface in commandHandlerInterfaces)
@@ -176,6 +176,10 @@ public static class ServiceCollectionExtensions
 
 					// Register the command handler interface
 					services.AddScoped(commandHandlerInterface, handlerType);
+
+					// Also register as IRequestHandler<TRequest, Unit> so the wrapper can resolve it directly
+					var queryHandlerInterface = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
+					services.AddScoped(queryHandlerInterface, sp => sp.GetRequiredService(commandHandlerInterface));
 
 					// Create a wrapper that bridges IRequestHandler<TRequest> to IRequestHandler<TRequest, Unit>
 					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
