@@ -21,6 +21,7 @@ internal sealed class QueueReader : IAsyncDisposable
 	private readonly ILogger _logger;
 	private readonly JsonSerializerOptions _jsonOptions;
 	private IChannel? _channel;
+	private CancellationTokenSource? _cts;
 	private bool _disposed;
 
 	public QueueReader(
@@ -68,6 +69,7 @@ internal sealed class QueueReader : IAsyncDisposable
 
 		await EnsureQueueExistAsync(cancellationToken);
 
+		_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 		_channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
 		await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: _options.PrefetchCount, global: false, cancellationToken: cancellationToken);
 
@@ -89,6 +91,11 @@ internal sealed class QueueReader : IAsyncDisposable
 	/// </summary>
 	public async Task StopAsync(CancellationToken cancellationToken)
 	{
+		if (_cts is not null)
+		{
+			await _cts.CancelAsync();
+		}
+
 		if (_channel is { IsOpen: true })
 		{
 			await _channel.CloseAsync(cancellationToken: cancellationToken);
@@ -138,25 +145,21 @@ internal sealed class QueueReader : IAsyncDisposable
 				return;
 			}
 
-			var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
-			if (mediator is null)
-			{
-				_logger.LogError("IMediator is not registered in the service provider while processing message on queue {QueueName}.",
-					_options.QueueName);
-				throw new InvalidOperationException("IMediator is not registered in the service provider.");
-			}
+			var mediator = _serviceProvider.GetRequiredService<IMediator>();
 
 			_logger.LogTrace("Processing message of type {MessageType} on queue {QueueName}. DeliveryTag: {DeliveryTag}",
 				messageType.FullName, _options.QueueName, args.DeliveryTag);
 
+			var cancellationToken = _cts?.Token ?? CancellationToken.None;
+
 			if (request is IRequest nonGenericRequest)
 			{
-				await mediator.Send(nonGenericRequest);
+				await mediator.Send(nonGenericRequest, cancellationToken);
 			}
 			else if (request.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequest<>)))
 			{
 				dynamic genericRequest = request;
-				await mediator.Send(genericRequest);
+				await mediator.Send(genericRequest, cancellationToken);
 			}
 			else
 			{
@@ -224,6 +227,12 @@ internal sealed class QueueReader : IAsyncDisposable
 		}
 
 		_disposed = true;
+
+		if (_cts is not null)
+		{
+			await _cts.CancelAsync();
+			_cts.Dispose();
+		}
 
 		if (_channel is not null)
 		{

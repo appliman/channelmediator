@@ -103,8 +103,12 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		using var scope = _serviceProvider.CreateScope();
 		var handlers = scope.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
 
-		var tasks = handlers.Select(handler =>
-			handler.Handle(notification, cancellationToken)).ToList();
+		var handlerArray = handlers as INotificationHandler<TNotification>[] ?? handlers.ToArray();
+		var tasks = new Task[handlerArray.Length];
+		for (var i = 0; i < handlerArray.Length; i++)
+		{
+			tasks[i] = handlerArray[i].Handle(notification, cancellationToken);
+		}
 
 		await Task.WhenAll(tasks);
 	}

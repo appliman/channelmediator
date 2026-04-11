@@ -87,6 +87,7 @@ internal sealed class QueueReader : IAsyncDisposable
 			MaxConcurrentCalls = _options.MaxConcurrentCalls,
 			AutoCompleteMessages = _options.AutoCompleteMessages,
 			MaxAutoLockRenewalDuration = _options.MaxAutoLockRenewalDuration,
+			PrefetchCount = _options.PrefetchCount,
 			ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete
 		};
 
@@ -142,19 +143,14 @@ internal sealed class QueueReader : IAsyncDisposable
 				return;
 			}
 
-			var request = JsonSerializer.Deserialize(args.Message.Body.ToArray(), messageType, _jsonOptions);
+			var request = JsonSerializer.Deserialize(args.Message.Body.ToMemory().Span, messageType, _jsonOptions);
 			if (request is null)
 			{
 				_logger.LogWarning("Failed to deserialize message of type {MessageType} on queue {QueueName}. MessageId: {MessageId}", messageType.FullName, _options.QueueName, args.Message.MessageId);
 				return;
 			}
 
-			var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
-			if (mediator is null)
-			{
-				_logger.LogError("IMediator is not registered in the service provider while processing message {MessageId} on queue {QueueName}.", args.Message.MessageId, _options.QueueName);
-				throw new InvalidOperationException("IMediator is not registered in the service provider.");
-			}
+			var mediator = _serviceProvider.GetRequiredService<IMediator>();
 
 			_logger.LogTrace("Processing message {MessageId} of type {MessageType} on queue {QueueName}.", args.Message.MessageId, messageType.FullName, _options.QueueName);
 			if (request is IRequest simpleRequest)
@@ -185,7 +181,7 @@ internal sealed class QueueReader : IAsyncDisposable
 			return;
 		}
 
-		var request = JsonSerializer.Deserialize(message.Body.ToArray(), _options.RequestType, _jsonOptions);
+		var request = JsonSerializer.Deserialize(message.Body.ToMemory().Span, _options.RequestType, _jsonOptions);
 		if (request is null)
 		{
 			_logger.LogWarning("Failed to deserialize wrapper message of type {RequestType} on queue {QueueName}. MessageId: {MessageId}", _options.RequestType.FullName, _options.QueueName, message.MessageId);

@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using RabbitMQ.Client;
@@ -20,6 +21,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 	private readonly ILogger _logger;
 	private readonly JsonSerializerOptions _jsonOptions;
 	private IChannel? _channel;
+	private CancellationTokenSource? _cts;
 	private bool _disposed;
 
 	public TopicSubscriptionReader(
@@ -71,6 +73,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 
 		await EnsureExchangeAndQueueExistAsync(cancellationToken);
 
+		_cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 		_channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
 		await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: _options.PrefetchCount, global: false, cancellationToken: cancellationToken);
 
@@ -93,6 +96,11 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 	/// </summary>
 	public async Task StopAsync(CancellationToken cancellationToken)
 	{
+		if (_cts is not null)
+		{
+			await _cts.CancelAsync();
+		}
+
 		if (_channel is { IsOpen: true })
 		{
 			await _channel.CloseAsync(cancellationToken: cancellationToken);
@@ -142,7 +150,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 				return;
 			}
 
-			await DispatchNotificationAsync(notification, CancellationToken.None);
+			await DispatchNotificationAsync(notification, _cts?.Token ?? CancellationToken.None);
 		}
 		catch (Exception ex)
 		{
@@ -153,13 +161,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 
 	private async Task DispatchNotificationAsync(object notification, CancellationToken cancellationToken)
 	{
-		var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
-		if (mediator is null)
-		{
-			_logger.LogError("IMediator is not registered in the service provider while publishing notification on {Exchange}/{Subscription}.",
-				_options.ExchangeName, _options.SubscriptionName);
-			throw new InvalidOperationException("IMediator is not registered in the service provider.");
-		}
+		var mediator = _serviceProvider.GetRequiredService<IMediator>();
 
 		_logger.LogTrace("Publishing notification of type {NotificationType} from exchange {Exchange}/{Subscription}.",
 			notification.GetType().FullName, _options.ExchangeName, _options.SubscriptionName);
@@ -176,6 +178,12 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 		}
 
 		_disposed = true;
+
+		if (_cts is not null)
+		{
+			await _cts.CancelAsync();
+			_cts.Dispose();
+		}
 
 		if (_channel is not null)
 		{
