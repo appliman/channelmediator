@@ -6,9 +6,9 @@
 public class ChannelMediatorConfiguration
 {
     /// <summary>
-    /// Gets or sets the service collection used to register mediator-related services.
+    /// Gets the service collection used to register mediator-related services.
     /// </summary>
-    public IServiceCollection Services { get; set; } = default!;
+    public IServiceCollection Services { get; internal set; } = default!;
 
     /// <summary>
     /// Gets or sets the strategy used to publish notifications.

@@ -9,7 +9,7 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<Version>1.0.11.0</Version>
-    <Authors>AppliMan</Authors>
+    <Authors>Appliman</Authors>
 		<PackageProjectUrl>https://github.com/appliman/channelmediator</PackageProjectUrl>
     <RepositoryUrl>https://github.com/appliman/channelmediator</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>

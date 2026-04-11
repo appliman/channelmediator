@@ -2,14 +2,25 @@
 
 /// <summary>
 /// Handler for requests that don't return a value (commands).
+/// Extends <see cref="IRequestHandler{TRequest, TResponse}"/> with a default implementation
+/// that bridges to the simpler <see cref="Handle"/> method, eliminating the need for reflection.
 /// </summary>
-public interface IRequestHandler<in TRequest>
+public interface IRequestHandler<in TRequest> : IRequestHandler<TRequest, Unit>
     where TRequest : IRequest
 {
     /// <summary>
-    /// MediatR-compatible alias for HandleAsync.
+    /// Handles the command without returning a value.
     /// </summary>
-    Task Handle(TRequest request, CancellationToken cancellationToken);
+    new Task Handle(TRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Default implementation that bridges to the command handler and returns <see cref="Unit.Value"/>.
+    /// </summary>
+    async Task<Unit> IRequestHandler<TRequest, Unit>.Handle(TRequest request, CancellationToken cancellationToken)
+    {
+        await Handle(request, cancellationToken);
+        return Unit.Value;
+    }
 }
 
 

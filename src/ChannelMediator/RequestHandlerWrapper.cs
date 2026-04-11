@@ -19,55 +19,11 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 
 		var behaviors = scope.ServiceProvider.GetServices<IPipelineBehavior<TRequest, TResponse>>().Reverse().ToList();
 
-		RequestHandlerDelegate<TResponse> handler;
-
-		// Check if this is a command (IRequest -> IRequest<Unit>)
-		if (typeof(TResponse) == typeof(Unit)
-			&& typeof(TRequest).GetInterfaces().Any(i => i == typeof(IRequest)))
+		RequestHandlerDelegate<TResponse> handler = async () =>
 		{
-			// Try to get IRequestHandler<TRequest> first (for commands)
-			var commandHandlerType = typeof(IRequestHandler<>).MakeGenericType(typeof(TRequest));
-			var commandHandler = scope.ServiceProvider.GetService(commandHandlerType);
-
-			if (commandHandler != null)
-			{
-				handler = async () =>
-				{
-					try
-					{
-						var handleMethod = commandHandlerType.GetMethod("Handle")
-							?? throw new InvalidOperationException($"Handle method not found on {commandHandlerType.Name}");
-						var task = (Task)handleMethod.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
-						await task;
-						return (TResponse)(object)Unit.Value;
-					}
-					catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException != null)
-					{
-						// Unwrap reflection exception to get the actual exception
-						System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-						throw; // This line will never be reached but is required for compilation
-					}
-				};
-			}
-			else
-			{
-				// Fallback to IRequestHandler<TRequest, Unit>
-				handler = async () =>
-				{
-					var requestHandler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-					return await requestHandler.Handle(typedRequest, cancellationToken);
-				};
-			}
-		}
-		else
-		{
-			// Regular request handler
-			handler = async () =>
-			{
-				var requestHandler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-				return await requestHandler.Handle(typedRequest, cancellationToken);
-			};
-		}
+			var requestHandler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
+			return await requestHandler.Handle(typedRequest, cancellationToken);
+		};
 
 		foreach (var behavior in behaviors)
 		{
