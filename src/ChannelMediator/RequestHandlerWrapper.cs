@@ -1,6 +1,6 @@
 ﻿namespace ChannelMediator;
 
-internal sealed class RequestHandlerWrapper<TRequest, TResponse> 
+internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 	: IRequestHandlerWrapper where TRequest : IRequest<TResponse>
 {
 	private readonly IServiceProvider _serviceProvider;
@@ -20,15 +20,15 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 		var behaviors = scope.ServiceProvider.GetServices<IPipelineBehavior<TRequest, TResponse>>().Reverse().ToList();
 
 		RequestHandlerDelegate<TResponse> handler;
-		
+
 		// Check if this is a command (IRequest -> IRequest<Unit>)
-		if (typeof(TResponse) == typeof(Unit) 
+		if (typeof(TResponse) == typeof(Unit)
 			&& typeof(TRequest).GetInterfaces().Any(i => i == typeof(IRequest)))
 		{
 			// Try to get IRequestHandler<TRequest> first (for commands)
 			var commandHandlerType = typeof(IRequestHandler<>).MakeGenericType(typeof(TRequest));
 			var commandHandler = scope.ServiceProvider.GetService(commandHandlerType);
-			
+
 			if (commandHandler != null)
 			{
 				handler = async () =>
@@ -37,7 +37,7 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 					{
 						var handleMethod = commandHandlerType.GetMethod("Handle");
 						var task = (Task)handleMethod!.Invoke(commandHandler, new object[] { typedRequest, cancellationToken })!;
-						await task.ConfigureAwait(ChannelMediatorConfiguration.Await);
+						await task;
 						return (TResponse)(object)Unit.Value;
 					}
 					catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException != null)

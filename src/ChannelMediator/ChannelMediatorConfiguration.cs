@@ -5,8 +5,6 @@
 /// </summary>
 public class ChannelMediatorConfiguration
 {
-    internal static bool Await { get; set; } = false;
-
     /// <summary>
     /// Gets or sets the service collection used to register mediator-related services.
     /// </summary>

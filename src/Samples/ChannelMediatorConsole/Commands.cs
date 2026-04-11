@@ -15,7 +15,7 @@ public class LogOrderCommandHandler : IRequestHandler<LogOrderCommand>
 
 	public async Task Handle(LogOrderCommand command, CancellationToken cancellationToken)
 	{
-		await HandleAsync(command, cancellationToken).ConfigureAwait(false);
+		await HandleAsync(command, cancellationToken);
 	}
 }
 
@@ -34,6 +34,6 @@ public class SendEmailCommandHandler : IRequestHandler<SendEmailCommand>
 
 	public async Task Handle(SendEmailCommand command, CancellationToken cancellationToken)
 	{
-		await HandleAsync(command, cancellationToken).ConfigureAwait(false);
+		await HandleAsync(command, cancellationToken);
 	}
 }

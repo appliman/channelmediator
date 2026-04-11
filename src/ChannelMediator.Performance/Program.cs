@@ -17,7 +17,7 @@ public class PerfHandler : IRequestHandler<PerfRequest, PerfResponse>
 
     public async Task<PerfResponse> Handle(PerfRequest request, CancellationToken cancellationToken)
     {
-        return await HandleAsync(request, cancellationToken).ConfigureAwait(false);
+     return await HandleAsync(request, cancellationToken);
     }
 }
 
@@ -63,13 +63,13 @@ public class MediatorBenchmarks
                 {
                     var payload = new byte[_messageSize];
                     var request = new PerfRequest(payload);
-                    var res = await _mediator.Send(request).ConfigureAwait(false);
+                  var res = await _mediator.Send(request);
                     if (res.Length != _messageSize) throw new InvalidOperationException("Invalid response");
                 }
             }));
         }
 
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        await Task.WhenAll(tasks);
     }
 }
 

@@ -12,59 +12,59 @@ namespace ChannelMediator.AzureBus;
 /// </summary>
 internal sealed class TopicSubscriptionReadersHostedService : IHostedService, IAsyncDisposable
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly List<TopicSubscriptionReader> _readers = [];
-    private bool _disposed;
-    private readonly ILogger _logger;
+	private readonly IServiceProvider _serviceProvider;
+	private readonly List<TopicSubscriptionReader> _readers = [];
+	private bool _disposed;
+	private readonly ILogger _logger;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TopicSubscriptionReadersHostedService"/> class.
-    /// </summary>
-    /// <param name="serviceProvider">The service provider.</param>
-    /// <param name="logger">The logger used to record hosted service activity.</param>
-    public TopicSubscriptionReadersHostedService(IServiceProvider serviceProvider, 
-        ILogger<TopicSubscriptionReadersHostedService> logger)
-    {
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-        _logger = logger;
-    }
+	/// <summary>
+	/// Initializes a new instance of the <see cref="TopicSubscriptionReadersHostedService"/> class.
+	/// </summary>
+	/// <param name="serviceProvider">The service provider.</param>
+	/// <param name="logger">The logger used to record hosted service activity.</param>
+	public TopicSubscriptionReadersHostedService(IServiceProvider serviceProvider,
+		ILogger<TopicSubscriptionReadersHostedService> logger)
+	{
+		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+		_logger = logger;
+	}
 
-    /// <inheritdoc />
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        var options = _serviceProvider.GetRequiredService<AzureServiceBusOptions>();
-        if (options.ProcessMode == AzureServiceBusMode.Mock)
-        {
-            return;
-        }
+	/// <inheritdoc />
+	public async Task StartAsync(CancellationToken cancellationToken)
+	{
+		var options = _serviceProvider.GetRequiredService<AzureServiceBusOptions>();
+		if (options.ProcessMode == AzureServiceBusMode.Mock)
+		{
+			return;
+		}
 
-        var client = _serviceProvider.GetRequiredService<ServiceBusClient>();
-        var entityManager = _serviceProvider.GetRequiredService<AzureServiceBusEntityManager>();
+		var client = _serviceProvider.GetRequiredService<ServiceBusClient>();
+		var entityManager = _serviceProvider.GetRequiredService<AzureServiceBusEntityManager>();
 
-        if (!options.SubscribeToAllTopics)
-        {
+		if (!options.SubscribeToAllTopics)
+		{
 
-            foreach (var readerOptions in TopicSubscriptionReaderRegistry.GetAll())
-            {
-                var reader = ActivatorUtilities.CreateInstance<TopicSubscriptionReader>(_serviceProvider, client, entityManager, readerOptions, _serviceProvider);
-                _readers.Add(reader);
-                await reader.StartAsync(cancellationToken).ConfigureAwait(false);
-            }
-        }
-        else
-        {
+			foreach (var readerOptions in TopicSubscriptionReaderRegistry.GetAll())
+			{
+				var reader = ActivatorUtilities.CreateInstance<TopicSubscriptionReader>(_serviceProvider, client, entityManager, readerOptions, _serviceProvider);
+				_readers.Add(reader);
+				await reader.StartAsync(cancellationToken);
+			}
+		}
+		else
+		{
 			var subscriptionName = options.TopicSubscriberName.ToLowerInvariant();
-            var adminClient = _serviceProvider.GetRequiredService<ServiceBusAdministrationClient>();
+			var adminClient = _serviceProvider.GetRequiredService<ServiceBusAdministrationClient>();
 
 			await foreach (var topic in adminClient.GetTopicsAsync())
 			{
-                _logger.LogDebug("Checking topic {TopicName} for subscription reader creation. status : {Status}.", topic.Name, topic.Status);
+				_logger.LogDebug("Checking topic {TopicName} for subscription reader creation. status : {Status}.", topic.Name, topic.Status);
 				if (!topic.Name.StartsWith(options.Prefix, StringComparison.OrdinalIgnoreCase))
 				{
 					continue;
 				}
 
-				await entityManager.EnsureSubscriptionExistsAsync(topic.Name, subscriptionName, typeof(INotification)).ConfigureAwait(false);
+				await entityManager.EnsureSubscriptionExistsAsync(topic.Name, subscriptionName, typeof(INotification));
 
 				var readerOptions = new TopicSubscriptionReaderOptions
 				{
@@ -78,35 +78,35 @@ internal sealed class TopicSubscriptionReadersHostedService : IHostedService, IA
 
 				var reader = ActivatorUtilities.CreateInstance<TopicSubscriptionReader>(_serviceProvider, client, entityManager, readerOptions, _serviceProvider);
 				_readers.Add(reader);
-				await reader.StartAsync(cancellationToken).ConfigureAwait(false);
+				await reader.StartAsync(cancellationToken);
 			}
 		}
 	}
 
-    /// <inheritdoc />
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-        foreach (var reader in _readers)
-        {
-            await reader.StopAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
+	/// <inheritdoc />
+	public async Task StopAsync(CancellationToken cancellationToken)
+	{
+		foreach (var reader in _readers)
+		{
+			await reader.StopAsync(cancellationToken);
+		}
+	}
 
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed)
-        {
-            return;
-        }
+	/// <inheritdoc />
+	public async ValueTask DisposeAsync()
+	{
+		if (_disposed)
+		{
+			return;
+		}
 
-        _disposed = true;
+		_disposed = true;
 
-        foreach (var reader in _readers)
-        {
-            await reader.DisposeAsync().ConfigureAwait(false);
-        }
+		foreach (var reader in _readers)
+		{
+			await reader.DisposeAsync();
+		}
 
-        _readers.Clear();
-    }
+		_readers.Clear();
+	}
 }
