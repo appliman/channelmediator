@@ -157,7 +157,8 @@ public class HandleMethodTests
 		var response = await task;
 
 		// Assert
-		Assert.IsType<Task<TestResponse>>(task);
+		Assert.NotNull(task);
+		Assert.True(task.IsCompleted);
 		Assert.Equal("Handled: async-test", response.Result);
 	}
 

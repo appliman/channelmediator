@@ -18,7 +18,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
 		_notificationHandlers = notificationHandlers ?? new Dictionary<Type, INotificationHandlerWrapper>();
-		_serviceProvider = serviceProvider!;
+		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 		_channel = Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
 		{
@@ -31,7 +31,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 	// Constructor for tests - converts IEnumerable to Dictionary
 	public Mediator(IEnumerable<IRequestHandlerWrapper> handlers)
-		: this(handlers.ToDictionary(h => h.RequestType))
+		: this(handlers.ToDictionary(h => h.RequestType), serviceProvider: new ServiceCollection().BuildServiceProvider())
 	{
 	}
 
@@ -71,18 +71,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 			throw new ArgumentNullException(nameof(notification));
 		}
 
-		INotificationHandlerWrapper wrapper = default!;
-		foreach (var value in _notificationHandlers.Values)
-		{
-			if (value.NotificationType == notification.GetType())
-			{
-				// Bingo !
-				wrapper = value;
-				break;
-			}
-		}
-
-		if (wrapper is null)
+		if (!_notificationHandlers.TryGetValue(notification.GetType(), out var wrapper))
 		{
 			return;
 		}
@@ -115,7 +104,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		var handlers = scope.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
 
 		var tasks = handlers.Select(handler =>
-			handler.Handle(notification, cancellationToken));
+			handler.Handle(notification, cancellationToken)).ToList();
 
 		await Task.WhenAll(tasks);
 	}
