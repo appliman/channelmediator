@@ -13,7 +13,7 @@ internal sealed class RequestEnvelope<TResponse> : IRequestEnvelope
 		_callerToken = callerToken;
 	}
 
-	public async ValueTask DispatchAsync(IReadOnlyDictionary<Type, IRequestHandlerWrapper> handlers, CancellationToken dispatcherToken)
+	public async ValueTask DispatchAsync(FrozenDictionary<Type, IRequestHandlerWrapper> handlers, CancellationToken dispatcherToken)
 	{
 		if (!handlers.TryGetValue(_request.GetType(), out var handler))
 		{

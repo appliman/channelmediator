@@ -2,5 +2,5 @@
 
 internal interface IRequestEnvelope
 {
-	ValueTask DispatchAsync(IReadOnlyDictionary<System.Type, IRequestHandlerWrapper> handlers, CancellationToken dispatcherToken);
+	ValueTask DispatchAsync(FrozenDictionary<System.Type, IRequestHandlerWrapper> handlers, CancellationToken dispatcherToken);
 }

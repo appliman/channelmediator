@@ -92,6 +92,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 			MaxConcurrentCalls = _options.MaxConcurrentCalls,
 			AutoCompleteMessages = _options.AutoCompleteMessages,
 			MaxAutoLockRenewalDuration = _options.MaxAutoLockRenewalDuration,
+			PrefetchCount = _options.PrefetchCount,
 			ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete
 		};
 
@@ -143,7 +144,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 				return;
 			}
 
-			var notification = JsonSerializer.Deserialize(args.Message.Body.ToArray(), messageType, _jsonOptions);
+			var notification = JsonSerializer.Deserialize(args.Message.Body.ToMemory().Span, messageType, _jsonOptions);
 			if (notification is null)
 			{
 				_logger.LogWarning("Failed to deserialize notification of type {MessageType} on topic {Topic}/{Subscription}. MessageId: {MessageId}", messageType.FullName, _options.TopicName, _options.SubscriptionName, args.Message.MessageId);
@@ -161,12 +162,7 @@ internal sealed class TopicSubscriptionReader : IAsyncDisposable
 
 	private async Task DispatchNotificationAsync(object notification, CancellationToken cancellationToken)
 	{
-		var mediator = _serviceProvider.GetService(typeof(IMediator)) as IMediator;
-		if (mediator is null)
-		{
-			_logger.LogError("IMediator is not registered in the service provider while publishing notification on {Topic}/{Subscription}.", _options.TopicName, _options.SubscriptionName);
-			throw new InvalidOperationException("IMediator is not registered in the service provider.");
-		}
+		var mediator = _serviceProvider.GetRequiredService<IMediator>();
 
 		_logger.LogTrace("Publishing notification of type {NotificationType} from topic {Topic}/{Subscription}.", notification.GetType().FullName, _options.TopicName, _options.SubscriptionName);
 		await mediator.Publish((INotification)notification, cancellationToken);

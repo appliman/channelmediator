@@ -1,5 +1,4 @@
 ﻿using ChannelMediator.Tests.Helpers;
-using System.Collections.Generic;
 
 namespace ChannelMediator.Tests;
 
@@ -17,7 +16,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -37,7 +36,7 @@ public class RequestEnvelopeTests
     public async Task DispatchAsync_WithMissingHandler_SetsException()
     {
         // Arrange
-        var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
+        var handlers = FrozenDictionary<Type, IRequestHandlerWrapper>.Empty;
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         var envelope = new RequestEnvelope<TestResponse>(request, completionSource, CancellationToken.None);
@@ -63,7 +62,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -90,7 +89,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(FailingRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new FailingRequest();
         var completionSource = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -119,7 +118,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -147,7 +146,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);

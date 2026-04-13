@@ -2,8 +2,8 @@
 
 internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 {
-	private readonly IReadOnlyDictionary<Type, IRequestHandlerWrapper> _handlers;
-	private readonly IReadOnlyDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
+	private readonly FrozenDictionary<Type, IRequestHandlerWrapper> _handlers;
+	private readonly FrozenDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ChannelMediatorConfiguration _notificationConfiguration;
 	private readonly Channel<IRequestEnvelope> _channel;
@@ -11,13 +11,13 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	private readonly Task _pump;
 
 	internal Mediator(
-		IReadOnlyDictionary<Type, IRequestHandlerWrapper> handlers,
-		IReadOnlyDictionary<Type, INotificationHandlerWrapper>? notificationHandlers = null,
+		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
+		FrozenDictionary<Type, INotificationHandlerWrapper>? notificationHandlers = null,
 		IServiceProvider? serviceProvider = null,
 		ChannelMediatorConfiguration? notificationConfiguration = null)
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
-		_notificationHandlers = notificationHandlers ?? new Dictionary<Type, INotificationHandlerWrapper>();
+		_notificationHandlers = notificationHandlers ?? FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 		_channel = Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
@@ -31,7 +31,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 	// Constructor for tests - converts IEnumerable to Dictionary
 	public Mediator(IEnumerable<IRequestHandlerWrapper> handlers)
-		: this(handlers.ToDictionary(h => h.RequestType), serviceProvider: new ServiceCollection().BuildServiceProvider())
+		: this(handlers.ToFrozenDictionary(h => h.RequestType), serviceProvider: new ServiceCollection().BuildServiceProvider())
 	{
 	}
 
@@ -103,8 +103,12 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		using var scope = _serviceProvider.CreateScope();
 		var handlers = scope.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
 
-		var tasks = handlers.Select(handler =>
-			handler.Handle(notification, cancellationToken)).ToList();
+		var handlerArray = handlers as INotificationHandler<TNotification>[] ?? handlers.ToArray();
+		var tasks = new Task[handlerArray.Length];
+		for (var i = 0; i < handlerArray.Length; i++)
+		{
+			tasks[i] = handlerArray[i].Handle(notification, cancellationToken);
+		}
 
 		await Task.WhenAll(tasks);
 	}
