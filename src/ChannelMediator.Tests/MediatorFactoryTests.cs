@@ -71,7 +71,7 @@ public class MediatorFactoryTests
 	{
 		// Arrange
 		var serviceProvider = new ServiceCollection().BuildServiceProvider();
-		var notificationHandlers = new Dictionary<Type, INotificationHandlerWrapper>();
+		var notificationHandlers = FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
 		var config = new ChannelMediatorConfiguration();
 
 		// Act & Assert
@@ -83,8 +83,8 @@ public class MediatorFactoryTests
 	public void Constructor_WithNullServiceProvider_ThrowsArgumentNullException()
 	{
 		// Arrange
-		var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
-		var notificationHandlers = new Dictionary<Type, INotificationHandlerWrapper>();
+		var handlers = FrozenDictionary<Type, IRequestHandlerWrapper>.Empty;
+		var notificationHandlers = FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
 		var config = new ChannelMediatorConfiguration();
 
 		// Act & Assert
@@ -96,7 +96,7 @@ public class MediatorFactoryTests
 	public void Constructor_WithNullNotificationHandlers_UsesEmptyDictionary()
 	{
 		// Arrange
-		var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
+		var handlers = FrozenDictionary<Type, IRequestHandlerWrapper>.Empty;
 		var serviceProvider = new ServiceCollection().BuildServiceProvider();
 		var config = new ChannelMediatorConfiguration();
 
@@ -113,8 +113,8 @@ public class MediatorFactoryTests
 	public void Constructor_WithNullNotificationConfiguration_UsesDefaultConfiguration()
 	{
 		// Arrange
-		var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
-		var notificationHandlers = new Dictionary<Type, INotificationHandlerWrapper>();
+		var handlers = FrozenDictionary<Type, IRequestHandlerWrapper>.Empty;
+		var notificationHandlers = FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
 		var serviceProvider = new ServiceCollection().BuildServiceProvider();
 
 		// Act

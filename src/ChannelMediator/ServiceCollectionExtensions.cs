@@ -35,10 +35,10 @@ public static class ServiceCollectionExtensions
 		services.AddSingleton<IMediatorFactory>(sp =>
 		{
 			var wrappers = sp.GetServices<IRequestHandlerWrapper>();
-			var handlers = wrappers.ToDictionary(w => w.RequestType);
+			var handlers = wrappers.ToFrozenDictionary(w => w.RequestType);
 
 			var notificationWrappers = sp.GetServices<INotificationHandlerWrapper>();
-			var notificationHandlers = notificationWrappers.ToDictionary(w => w.NotificationType);
+			var notificationHandlers = notificationWrappers.ToFrozenDictionary(w => w.NotificationType);
 
 			return new MediatorFactory(handlers, notificationHandlers, sp, notificationConfig);
 		});

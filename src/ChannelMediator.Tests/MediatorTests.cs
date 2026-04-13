@@ -134,7 +134,7 @@ public class MediatorTests
 	{
 		// Act & Assert
 		Assert.Throws<ArgumentNullException>(() =>
-			new Mediator((IReadOnlyDictionary<Type, IRequestHandlerWrapper>)null!));
+			new Mediator((FrozenDictionary<Type, IRequestHandlerWrapper>)null!));
 	}
 
 	[Fact]

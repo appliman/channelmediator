@@ -7,19 +7,19 @@
 /// </summary>
 internal sealed class MediatorFactory : IMediatorFactory
 {
-	private readonly IReadOnlyDictionary<Type, IRequestHandlerWrapper> _handlers;
-	private readonly IReadOnlyDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
+	private readonly FrozenDictionary<Type, IRequestHandlerWrapper> _handlers;
+	private readonly FrozenDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ChannelMediatorConfiguration _notificationConfiguration;
 
 	public MediatorFactory(
-		IReadOnlyDictionary<Type, IRequestHandlerWrapper> handlers,
-		IReadOnlyDictionary<Type, INotificationHandlerWrapper> notificationHandlers,
+		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
+		FrozenDictionary<Type, INotificationHandlerWrapper> notificationHandlers,
 		IServiceProvider serviceProvider,
 		ChannelMediatorConfiguration notificationConfiguration)
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
-		_notificationHandlers = notificationHandlers ?? new Dictionary<Type, INotificationHandlerWrapper>();
+		_notificationHandlers = notificationHandlers ?? FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 	}
