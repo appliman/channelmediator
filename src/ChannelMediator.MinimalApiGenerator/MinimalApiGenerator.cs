@@ -328,7 +328,6 @@ public class MinimalApiGenerator : IIncrementalGenerator
     {
         var results = new List<EndpointApiInfo>();
         var endpointApiAttributeName = "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute";
-        var iRequestName = "IRequest";
         var filterByAssembly = scanAssemblies.Length > 0;
 
         foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
