@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="_temp\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
+    <ProjectReference Include="..\ChannelMediator.MinimalApiGenerator.Abstraction\ChannelMediator.MinimalApiGenerator.Abstraction.csproj" />
+  </ItemGroup>
+
+</Project>
