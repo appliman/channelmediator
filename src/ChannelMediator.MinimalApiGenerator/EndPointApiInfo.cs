@@ -1,4 +1,6 @@
-﻿namespace ChannelMediator.MinimalApiGenerator;
+﻿using Microsoft.CodeAnalysis;
+
+namespace ChannelMediator.MinimalApiGenerator;
 
 internal class EndpointApiInfo
 {
@@ -6,7 +8,10 @@ internal class EndpointApiInfo
 	public string RequestShortName { get; set; } = null!;
 	public string Namespace { get; set; } = null!;
 	public string GroupName { get; set; } = null!;
+	public bool HasExplicitGroupName { get; set; }
+	public Location? Location { get; set; }
 	public string EntityName { get; set; } = null!;
+	public bool HasExplicitEntityName { get; set; }
 	public string[] Tags { get; set; } = Array.Empty<string>();
 	public string? Summary { get; set; }
 	public string? Description { get; set; }

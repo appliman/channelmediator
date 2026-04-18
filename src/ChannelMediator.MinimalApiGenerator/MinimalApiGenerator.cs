@@ -26,6 +26,22 @@ public class MinimalApiGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InvalidGroupNameDescriptor = new(
+        id: "CMAPI003",
+        title: "EndpointApi group name contains invalid characters",
+        messageFormat: "Endpoint '{0}' declares GroupName '{1}', but group names may only contain letters and digits. Use only [A-Z], [a-z], [0-9]. Code generation has been skipped.",
+        category: "ChannelMediator.MinimalApiGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor InvalidEntityNameDescriptor = new(
+        id: "CMAPI004",
+        title: "EndpointApi entity name is invalid",
+        messageFormat: "Endpoint '{0}' declares EntityName '{1}', but entity names must be lowercase and valid in a URL path segment. Use only [a-z], [0-9], '-' or '_'. Code generation has been skipped.",
+        category: "ChannelMediator.MinimalApiGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var mapApiExtensionClasses = context.SyntaxProvider
@@ -145,7 +161,9 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute");
 
                     var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
-                    var entityName = GetAttributeValue<string>(attributeData, "EntityName") ?? typeSymbol.Name.Replace("Request", "");
+                    var hasExplicitGroupName = attributeData?.NamedArguments.Any(na => na.Key == "GroupName") == true;
+                    var entityName = GetAttributeValue<string>(attributeData, "EntityName") ?? CreateDefaultEntityName(typeSymbol.Name);
+                    var hasExplicitEntityName = attributeData?.NamedArguments.Any(na => na.Key == "EntityName") == true;
                     var tags = GetAttributeArrayValue(attributeData, "Tags");
                     var summary = GetAttributeValue<string>(attributeData, "Summary");
                     var description = GetAttributeValue<string>(attributeData, "Description");
@@ -188,7 +206,10 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         RequestShortName = typeSymbol.Name,
                         Namespace = typeSymbol.ContainingNamespace.ToDisplayString(),
                         GroupName = groupName,
+                        HasExplicitGroupName = hasExplicitGroupName,
+                        Location = typeDeclaration.GetLocation(),
                         EntityName = entityName,
+                        HasExplicitEntityName = hasExplicitEntityName,
                         Tags = tags,
                         Summary = summary,
                         Description = description,
@@ -277,6 +298,22 @@ public class MinimalApiGenerator : IIncrementalGenerator
             var referencedEndpoints = GetEndpointApisFromReferencedAssemblies(compilation, mapApiClass.ScanAssemblies);
             var distinctEndpointApis = localEndpoints.Concat(referencedEndpoints).Distinct().ToList();
 
+            var hasInvalidGroupNames = false;
+            foreach (var endpoint in distinctEndpointApis.Where(IsInvalidGroupName))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    InvalidGroupNameDescriptor,
+                    endpoint.Location,
+                    endpoint.RequestShortName,
+                    endpoint.GroupName));
+                hasInvalidGroupNames = true;
+            }
+
+            if (hasInvalidGroupNames)
+            {
+                continue;
+            }
+
             if (!distinctEndpointApis.Any())
             {
                 continue;
@@ -291,7 +328,6 @@ public class MinimalApiGenerator : IIncrementalGenerator
     {
         var results = new List<EndpointApiInfo>();
         var endpointApiAttributeName = "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute";
-        var iRequestName = "IRequest";
         var filterByAssembly = scanAssemblies.Length > 0;
 
         foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
@@ -309,7 +345,9 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     continue;
 
                 var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
-                var entityName = GetAttributeValue<string>(attributeData, "EntityName") ?? typeSymbol.Name.Replace("Request", "");
+                var hasExplicitGroupName = attributeData.NamedArguments.Any(na => na.Key == "GroupName");
+                var entityName = GetAttributeValue<string>(attributeData, "EntityName") ?? CreateDefaultEntityName(typeSymbol.Name);
+                var hasExplicitEntityName = attributeData.NamedArguments.Any(na => na.Key == "EntityName");
                 var tags = GetAttributeArrayValue(attributeData, "Tags");
                 var summary = GetAttributeValue<string>(attributeData, "Summary");
                 var description = GetAttributeValue<string>(attributeData, "Description");
@@ -344,7 +382,10 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     RequestShortName = typeSymbol.Name,
                     Namespace = typeSymbol.ContainingNamespace.ToDisplayString(),
                     GroupName = groupName,
+                    HasExplicitGroupName = hasExplicitGroupName,
+                    Location = typeSymbol.Locations.FirstOrDefault(),
                     EntityName = entityName,
+                    HasExplicitEntityName = hasExplicitEntityName,
                     Tags = tags,
                     Summary = summary,
                     Description = description,
@@ -425,6 +466,84 @@ public class MinimalApiGenerator : IIncrementalGenerator
         return GetAttributeListValue(attributeData, propertyName).ToArray();
     }
 
+    private static bool IsInvalidGroupName(EndpointApiInfo endpoint)
+    {
+        if (!endpoint.HasExplicitGroupName)
+        {
+            return false;
+        }
+
+        return string.IsNullOrWhiteSpace(endpoint.GroupName)
+            || endpoint.GroupName.Any(character => !char.IsLetterOrDigit(character));
+    }
+
+    private static bool IsInvalidEntityName(EndpointApiInfo endpoint)
+    {
+        if (!endpoint.HasExplicitEntityName)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(endpoint.EntityName))
+        {
+            return true;
+        }
+
+        return endpoint.EntityName.Any(character => !char.IsLower(character) && !char.IsDigit(character) && character != '-' && character != '_');
+    }
+
+    private static string CreateDefaultEntityName(string typeName)
+    {
+        var baseName = typeName.EndsWith("Request", StringComparison.Ordinal)
+            ? typeName.Substring(0, typeName.Length - "Request".Length)
+            : typeName;
+
+        return ToKebabCase(baseName);
+    }
+
+    private static string ToKebabCase(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "endpoint";
+        }
+
+        var sb = new StringBuilder(value.Length + 8);
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            var character = value[i];
+            if (!char.IsLetterOrDigit(character))
+            {
+                if (sb.Length > 0 && sb[sb.Length - 1] != '-')
+                {
+                    sb.Append('-');
+                }
+
+                continue;
+            }
+
+            var shouldInsertSeparator = sb.Length > 0
+                && sb[sb.Length - 1] != '-'
+                && char.IsUpper(character)
+                && (char.IsLower(value[i - 1]) || (i + 1 < value.Length && char.IsLower(value[i + 1])));
+
+            if (shouldInsertSeparator)
+            {
+                sb.Append('-');
+            }
+
+            sb.Append(char.ToLowerInvariant(character));
+        }
+
+        if (sb.Length > 0 && sb[sb.Length - 1] == '-')
+        {
+            sb.Length--;
+        }
+
+        return sb.Length == 0 ? "endpoint" : sb.ToString();
+    }
+
     private static string GenerateApiMapperExtension(MapApiExtensionInfo mapApiClass, List<EndpointApiInfo> endpoints)
     {
         var sb = new StringBuilder();
@@ -446,29 +565,109 @@ public class MinimalApiGenerator : IIncrementalGenerator
         sb.AppendLine($"public static partial class {mapApiClass.ClassName}");
         sb.AppendLine("{");
 
-        if (mapApiClass.WithVersionning)
+        var groupedEndpoints = endpoints.Where(e => e.HasExplicitGroupName).GroupBy(e => e.GroupName).OrderBy(g => g.Key).ToList();
+        var ungroupedEndpoints = endpoints.Where(e => !e.HasExplicitGroupName).ToList();
+        var useGroupedMethods = groupedEndpoints.Count > 0;
+
+        AppendMapMethodSignature(sb, mapApiClass, $"Map{mapApiClass.ClassName}");
+        sb.AppendLine("    {");
+
+        if (useGroupedMethods)
         {
-            sb.AppendLine($"    public static void Map{mapApiClass.ClassName}(this IEndpointRouteBuilder routes, ApiVersionSet versionSet)");
+            foreach (var group in groupedEndpoints)
+            {
+                var methodName = GetGroupMethodName(mapApiClass.ClassName, group.Key);
+                sb.AppendLine(mapApiClass.WithVersionning
+                    ? $"        routes.{methodName}(versionSet);"
+                    : $"        routes.{methodName}();");
+            }
+
+            if (ungroupedEndpoints.Count > 0)
+            {
+                AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
+            }
         }
         else
         {
-            sb.AppendLine($"    public static void Map{mapApiClass.ClassName}(this IEndpointRouteBuilder routes)");
+            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
         }
 
-        sb.AppendLine("    {");
+        sb.AppendLine("    }");
 
-        var groupedEndpoints = endpoints.GroupBy(e => e.GroupName).ToList();
-
-        foreach (var group in groupedEndpoints)
+        if (useGroupedMethods)
         {
-            var groupName = group.Key;
-            var groupEndpoints = group.ToList();
+            foreach (var group in groupedEndpoints)
+            {
+                sb.AppendLine();
+                AppendMapMethodSignature(sb, mapApiClass, GetGroupMethodName(mapApiClass.ClassName, group.Key));
+                sb.AppendLine("    {");
+                AppendEndpointMappings(sb, group.ToList(), "routes", true);
+                sb.AppendLine("    }");
+            }
+        }
 
-            sb.AppendLine();
-            sb.AppendLine($"        // Group: {groupName}");
-            var firstEndpoint = groupEndpoints.First();
-            var groupChain = new List<string>();
-            groupChain.Add($"        var {groupName.ToLowerInvariant()}Group = routes.MapGroup(\"/api/{groupName.ToLowerInvariant()}\")");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    private static void AppendMapMethodSignature(StringBuilder sb, MapApiExtensionInfo mapApiClass, string methodName)
+    {
+        if (mapApiClass.WithVersionning)
+        {
+            sb.AppendLine($"    public static void {methodName}(this IEndpointRouteBuilder routes, ApiVersionSet versionSet)");
+            return;
+        }
+
+        sb.AppendLine($"    public static void {methodName}(this IEndpointRouteBuilder routes)");
+    }
+
+    private static string GetGroupMethodName(string className, string groupName)
+    {
+        return $"Map{className}{SanitizeIdentifierPart(groupName)}";
+    }
+
+    private static string SanitizeIdentifierPart(string value)
+    {
+        var sb = new StringBuilder(value.Length);
+        var capitalizeNext = true;
+
+        foreach (var character in value)
+        {
+            if (!char.IsLetterOrDigit(character))
+            {
+                capitalizeNext = true;
+                continue;
+            }
+
+            sb.Append(capitalizeNext ? char.ToUpperInvariant(character) : character);
+            capitalizeNext = false;
+        }
+
+        if (sb.Length == 0)
+        {
+            return "Group";
+        }
+
+        if (!char.IsLetter(sb[0]) && sb[0] != '_')
+        {
+            sb.Insert(0, '_');
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendEndpointMappings(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, bool createGroupRoute)
+    {
+        if (createGroupRoute)
+        {
+            var groupName = endpoints[0].GroupName;
+            var groupVariableName = $"{SanitizeIdentifierPart(groupName).ToLowerInvariant()}Group";
+            var firstEndpoint = endpoints[0];
+            var groupChain = new List<string>
+            {
+                $"        var {groupVariableName} = {routeBuilderExpression}.MapGroup(\"/api/{groupName.ToLowerInvariant()}\")"
+            };
 
             if (firstEndpoint.Tags.Any())
             {
@@ -482,128 +681,136 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 groupChain.Add($"            .RequireAuthorization(new AuthorizeAttribute {{ AuthenticationSchemes = \"{schemesString}\" }})");
             }
 
+            sb.AppendLine();
+            sb.AppendLine($"        // Group: {groupName}");
             for (int i = 0; i < groupChain.Count - 1; i++)
+            {
                 sb.AppendLine(groupChain[i]);
+            }
+
             sb.AppendLine(groupChain[groupChain.Count - 1] + ";");
             sb.AppendLine();
 
-            foreach (var endpoint in groupEndpoints)
+            AppendEndpointMappingsCore(sb, endpoints, groupVariableName);
+            return;
+        }
+
+        AppendEndpointMappingsCore(sb, endpoints, routeBuilderExpression);
+    }
+
+    private static void AppendEndpointMappingsCore(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression)
+    {
+        foreach (var endpoint in endpoints)
+        {
+            var entityName = endpoint.EntityName.ToLowerInvariant();
+            var handlerLines = new List<string>();
+            string lastHandlerLine;
+
+            if (endpoint.HttpVerb == "GET")
             {
-                var entityName = endpoint.EntityName.ToLowerInvariant();
-                var groupVarName = $"{groupName.ToLowerInvariant()}Group";
-
-                // Build the handler lines (all but last) and the last handler line separately
-                var handlerLines = new List<string>();
-                string lastHandlerLine;
-
-                if (endpoint.HttpVerb == "GET")
-                {
-                    if (endpoint.Parameters.Any())
-                    {
-                        var paramsList = string.Join(", ", endpoint.Parameters.Select(p => $"{p.Type} {p.Name}"));
-                        var requestCreation = endpoint.Parameters.Count == 1
-                            ? $"new {endpoint.RequestTypeName}({endpoint.Parameters[0].Name})"
-                            : $"new {endpoint.RequestTypeName}({string.Join(", ", endpoint.Parameters.Select(p => p.Name))})";
-
-                        if (endpoint.IsResponseNullable)
-                        {
-                            handlerLines.Add($"        {groupVarName}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator) =>");
-                            handlerLines.Add($"        {{");
-                            handlerLines.Add($"            var result = await mediator.Send({requestCreation});");
-                            handlerLines.Add($"            return result is not null ? Results.Ok(result) : Results.NotFound();");
-                            lastHandlerLine = $"        }})";
-                        }
-                        else
-                        {
-                            handlerLines.Add($"        {groupVarName}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
-                            lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
-                        }
-                    }
-                    else
-                    {
-                        if (endpoint.IsResponseNullable)
-                        {
-                            handlerLines.Add($"        {groupVarName}.MapGet(\"/{entityName}\", async (IMediator mediator) =>");
-                            handlerLines.Add($"        {{");
-                            handlerLines.Add($"            var result = await mediator.Send(new {endpoint.RequestTypeName}());");
-                            handlerLines.Add($"            return result is not null ? Results.Ok(result) : Results.NotFound();");
-                            lastHandlerLine = $"        }})";
-                        }
-                        else
-                        {
-                            handlerLines.Add($"        {groupVarName}.MapGet(\"/{entityName}\", async (IMediator mediator)");
-                            lastHandlerLine = $"            => await mediator.Send(new {endpoint.RequestTypeName}()))";
-                        }
-                    }
-                }
-                else if (endpoint.HttpVerb == "DELETE" && endpoint.Parameters.Any())
+                if (endpoint.Parameters.Any())
                 {
                     var paramsList = string.Join(", ", endpoint.Parameters.Select(p => $"{p.Type} {p.Name}"));
                     var requestCreation = endpoint.Parameters.Count == 1
                         ? $"new {endpoint.RequestTypeName}({endpoint.Parameters[0].Name})"
                         : $"new {endpoint.RequestTypeName}({string.Join(", ", endpoint.Parameters.Select(p => p.Name))})";
 
-                    handlerLines.Add($"        {groupVarName}.MapDelete(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
-                    lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+                    if (endpoint.IsResponseNullable)
+                    {
+                        handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator) =>");
+                        handlerLines.Add("        {");
+                        handlerLines.Add($"            var result = await mediator.Send({requestCreation});");
+                        handlerLines.Add("            return result is not null ? Microsoft.AspNetCore.Http.Results.Ok(result) : Microsoft.AspNetCore.Http.Results.NotFound();");
+                        lastHandlerLine = "        })";
+                    }
+                    else
+                    {
+                        handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
+                        lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+                    }
                 }
-                else if (endpoint.HttpVerb == "PUT")
+                else if (endpoint.IsResponseNullable)
                 {
-                    handlerLines.Add($"        {groupVarName}.MapPut(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
-                    lastHandlerLine = $"            => await mediator.Send(request))";
+                    handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async (IMediator mediator) =>");
+                    handlerLines.Add("        {");
+                    handlerLines.Add($"            var result = await mediator.Send(new {endpoint.RequestTypeName}());");
+                    handlerLines.Add("            return result is not null ? Microsoft.AspNetCore.Http.Results.Ok(result) : Microsoft.AspNetCore.Http.Results.NotFound();");
+                    lastHandlerLine = "        })";
                 }
                 else
                 {
-                    handlerLines.Add($"        {groupVarName}.MapPost(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
-                    lastHandlerLine = $"            => await mediator.Send(request))";
+                    handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async (IMediator mediator)");
+                    lastHandlerLine = $"            => await mediator.Send(new {endpoint.RequestTypeName}()))";
                 }
-
-                // Build metadata chain
-                var endpointChain = new List<string>();
-
-                if (!string.IsNullOrWhiteSpace(endpoint.Summary))
-                    endpointChain.Add($"            .WithSummary(\"{endpoint.Summary}\")");
-
-                if (endpoint.Tags.Any())
-                {
-                    var tagsString = string.Join("\", \"", endpoint.Tags);
-                    endpointChain.Add($"            .WithTags(\"{tagsString}\")");
-                }
-
-                if (!string.IsNullOrWhiteSpace(endpoint.Description))
-                    endpointChain.Add($"            .WithDescription(\"{endpoint.Description}\")");
-
-                if (endpoint.HttpVerb == "GET" && endpoint.IsResponseNullable)
-                {
-                    var responseTypeWithoutNullable = endpoint.ResponseTypeName.TrimEnd('?');
-                    endpointChain.Add($"            .Produces<{responseTypeWithoutNullable}>(StatusCodes.Status200OK)");
-                    endpointChain.Add($"            .Produces<Microsoft.AspNetCore.Mvc.ProblemDetails>(StatusCodes.Status404NotFound)");
-                }
-
-                // Emit handler lines (all but last)
-                foreach (var line in handlerLines)
-                    sb.AppendLine(line);
-
-                if (endpointChain.Count > 0)
-                {
-                    // Last handler line + full chain, semicolon on last chain item
-                    sb.AppendLine(lastHandlerLine);
-                    for (int i = 0; i < endpointChain.Count - 1; i++)
-                        sb.AppendLine(endpointChain[i]);
-                    sb.AppendLine(endpointChain[endpointChain.Count - 1] + ";");
-                }
-                else
-                {
-                    // No chain — semicolon directly on the last handler line
-                    sb.AppendLine(lastHandlerLine + ";");
-                }
-                sb.AppendLine();
             }
+            else if (endpoint.HttpVerb == "DELETE" && endpoint.Parameters.Any())
+            {
+                var paramsList = string.Join(", ", endpoint.Parameters.Select(p => $"{p.Type} {p.Name}"));
+                var requestCreation = endpoint.Parameters.Count == 1
+                    ? $"new {endpoint.RequestTypeName}({endpoint.Parameters[0].Name})"
+                    : $"new {endpoint.RequestTypeName}({string.Join(", ", endpoint.Parameters.Select(p => p.Name))})";
+
+                handlerLines.Add($"        {routeBuilderExpression}.MapDelete(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
+                lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+            }
+            else if (endpoint.HttpVerb == "PUT")
+            {
+                handlerLines.Add($"        {routeBuilderExpression}.MapPut(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
+                lastHandlerLine = "            => await mediator.Send(request))";
+            }
+            else
+            {
+                handlerLines.Add($"        {routeBuilderExpression}.MapPost(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
+                lastHandlerLine = "            => await mediator.Send(request))";
+            }
+
+            var endpointChain = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(endpoint.Summary))
+            {
+                endpointChain.Add($"            .WithSummary(\"{endpoint.Summary}\")");
+            }
+
+            if (endpoint.Tags.Any())
+            {
+                var tagsString = string.Join("\", \"", endpoint.Tags);
+                endpointChain.Add($"            .WithTags(\"{tagsString}\")");
+            }
+
+            if (!string.IsNullOrWhiteSpace(endpoint.Description))
+            {
+                endpointChain.Add($"            .WithDescription(\"{endpoint.Description}\")");
+            }
+
+            if (endpoint.HttpVerb == "GET" && endpoint.IsResponseNullable)
+            {
+                var responseTypeWithoutNullable = endpoint.ResponseTypeName.TrimEnd('?');
+                endpointChain.Add($"            .Produces<{responseTypeWithoutNullable}>(StatusCodes.Status200OK)");
+                endpointChain.Add("            .Produces<Microsoft.AspNetCore.Mvc.ProblemDetails>(StatusCodes.Status404NotFound)");
+            }
+
+            foreach (var line in handlerLines)
+            {
+                sb.AppendLine(line);
+            }
+
+            if (endpointChain.Count > 0)
+            {
+                sb.AppendLine(lastHandlerLine);
+                for (int i = 0; i < endpointChain.Count - 1; i++)
+                {
+                    sb.AppendLine(endpointChain[i]);
+                }
+
+                sb.AppendLine(endpointChain[endpointChain.Count - 1] + ";");
+            }
+            else
+            {
+                sb.AppendLine(lastHandlerLine + ";");
+            }
+
+            sb.AppendLine();
         }
-
-        sb.AppendLine("    }");
-        sb.AppendLine("}");
-
-        return sb.ToString();
     }
 
     
