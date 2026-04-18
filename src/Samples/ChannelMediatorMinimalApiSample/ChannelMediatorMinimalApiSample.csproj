@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.11.10" />
+	</ItemGroup>
+
+	<ItemGroup>
+    <Folder Include="_temp\" />
+  </ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\ChannelMediator.MinimalApiGenerator.Abstraction\ChannelMediator.MinimalApiGenerator.Abstraction.csproj" />
+	  <ProjectReference Include="..\..\ChannelMediator.MinimalApiGenerator\ChannelMediator.MinimalApiGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	  <ProjectReference Include="..\..\ChannelMediatorApiContractsSample\ChannelMediatorApiContractsSample.csproj" />
+	  <ProjectReference Include="..\..\ChannelMediator\ChannelMediator.csproj" />
+	</ItemGroup>
+
+</Project>
