@@ -116,6 +116,27 @@ jobs:
           --configuration Release
           --output ./nupkgs
 
+      - name: Pack ChannelMediator.MinimalApiGenerator.Abstraction
+        run: >
+          dotnet pack src/ChannelMediator.MinimalApiGenerator.Abstraction/ChannelMediator.MinimalApiGenerator.Abstraction.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.MinimalApiGenerator
+        run: >
+          dotnet pack src/ChannelMediator.MinimalApiGenerator/ChannelMediator.MinimalApiGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.ApiClientGenerator
+        run: >
+          dotnet pack src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
         with:
