@@ -585,7 +585,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
         }
         else
         {
-            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", false);
+            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
         }
 
         sb.AppendLine("    }");
