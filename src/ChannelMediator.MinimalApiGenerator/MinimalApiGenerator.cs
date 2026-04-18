@@ -427,7 +427,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
             sb.AppendLine($"        // Group: {groupName}");
             var firstEndpoint = groupEndpoints.First();
             var groupChain = new List<string>();
-            groupChain.Add($"        var {groupName.ToLowerInvariant()}Group = routes.MapGroup(\"/api/{groupName.ToLowerInvariant()}/\")");
+            groupChain.Add($"        var {groupName.ToLowerInvariant()}Group = routes.MapGroup(\"/api/{groupName.ToLowerInvariant()}\")");
 
             if (firstEndpoint.Tags.Any())
             {
