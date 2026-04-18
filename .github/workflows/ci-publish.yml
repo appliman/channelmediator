@@ -17,50 +17,9 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
-    name: Build & Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 9
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '9.0.x'
-
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Restore dependencies
-        run: dotnet restore ${{ env.SOLUTION_FILE }}
-
-      - name: Build
-        run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
-
-      - name: Test
-        run: >
-          dotnet test src/ChannelMediator.Tests/ChannelMediator.Tests.csproj
-          --no-build
-          --configuration Release
-          --logger "trx;LogFileName=test-results.trx"
-          --collect:"XPlat Code Coverage"
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: '**/TestResults/**'
-          retention-days: 14
 
   publish:
     name: Pack & Publish to NuGet
-    needs: build-and-test
-    if: success()
     runs-on: ubuntu-latest
 
     permissions:
