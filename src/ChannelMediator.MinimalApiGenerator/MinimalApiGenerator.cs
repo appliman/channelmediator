@@ -582,6 +582,11 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     ? $"        routes.{methodName}(versionSet);"
                     : $"        routes.{methodName}();");
             }
+
+            if (ungroupedEndpoints.Count > 0)
+            {
+                AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
+            }
         }
         else
         {
