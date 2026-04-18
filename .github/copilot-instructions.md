@@ -88,3 +88,6 @@ It provides request/response dispatch, fire-and-forget commands, notification fa
 - Multi-targeting: `net10.0;net9.0;net8.0`.
 - C# 12 features allowed. Do not raise `<LangVersion>` or change TFMs unless asked.
 - Nullable reference types enabled (`<Nullable>enable</Nullable>`).
+
+## Code review language
+When performing a code review, always write comments in French first and English.
