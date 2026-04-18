@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Linq;
@@ -9,6 +10,22 @@ namespace ChannelMediator.MinimalApiGenerator;
 [Generator]
 public class MinimalApiGenerator : IIncrementalGenerator
 {
+    private static readonly DiagnosticDescriptor NotStaticDescriptor = new(
+        id: "CMAPI001",
+        title: "MapApiExtension class must be static",
+        messageFormat: "Class '{0}' decorated with [MapApiExtension] must be declared as 'static'. Code generation has been skipped.",
+        category: "ChannelMediator.MinimalApiGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor NotPartialDescriptor = new(
+        id: "CMAPI002",
+        title: "MapApiExtension class must be partial",
+        messageFormat: "Class '{0}' decorated with [MapApiExtension] must be declared as 'partial'. Code generation has been skipped.",
+        category: "ChannelMediator.MinimalApiGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var mapApiExtensionClasses = context.SyntaxProvider
@@ -74,12 +91,18 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     var withVersionning = GetAttributeValue<bool>(attributeData, "WithVersionning");
                     var scanAssemblies = GetAttributeArrayValue(attributeData, "ScanAssemblies");
 
+                    var isStatic = classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword);
+                    var isPartial = classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword);
+
                     return new MapApiExtensionInfo
                     {
                         ClassName = classSymbol.Name,
                         Namespace = classSymbol.ContainingNamespace.ToDisplayString(),
                         WithVersionning = withVersionning,
-                        ScanAssemblies = scanAssemblies
+                        ScanAssemblies = scanAssemblies,
+                        IsStatic = isStatic,
+                        IsPartial = isPartial,
+                        Location = classDeclaration.GetLocation()
                     };
                 }
             }
@@ -233,6 +256,19 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
         foreach (var mapApiClass in distinctMapApiClasses)
         {
+            // Validate that the target class is both static and partial
+            if (!mapApiClass.IsStatic)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(NotStaticDescriptor, mapApiClass.Location, mapApiClass.ClassName));
+                continue;
+            }
+
+            if (!mapApiClass.IsPartial)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(NotPartialDescriptor, mapApiClass.Location, mapApiClass.ClassName));
+                continue;
+            }
+
             var referencedEndpoints = GetEndpointApisFromReferencedAssemblies(compilation, mapApiClass.ScanAssemblies);
             var distinctEndpointApis = localEndpoints.Concat(referencedEndpoints).Distinct().ToList();
 
