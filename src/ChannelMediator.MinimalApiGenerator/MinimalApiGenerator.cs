@@ -437,8 +437,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
             if (firstEndpoint.AuthenticationSchemes.Any())
             {
-                var schemesString = string.Join(", ", firstEndpoint.AuthenticationSchemes.Select(s => $"\"{s}\""));
-                groupChain.Add($"            .RequireAuthorization(new AuthorizeAttribute {{ AuthenticationSchemes = {schemesString} }})");
+                var schemesString = string.Join(",", firstEndpoint.AuthenticationSchemes);
+                groupChain.Add($"            .RequireAuthorization(new AuthorizeAttribute {{ AuthenticationSchemes = \"{schemesString}\" }})");
             }
 
             for (int i = 0; i < groupChain.Count - 1; i++)
