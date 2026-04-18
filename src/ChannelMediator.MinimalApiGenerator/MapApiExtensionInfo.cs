@@ -11,7 +11,7 @@ internal class MapApiExtensionInfo
 	public bool IsStatic { get; set; }
 	public bool IsPartial { get; set; }
 
-	/// <summary>Location of the class declaration — excluded from equality so it doesn't break the incremental pipeline.</summary>
+	/// <summary>Location of the class declaration. Excluded from equality because it changes between compilations and must not defeat the incremental pipeline cache. <see cref="IsStatic"/> and <see cref="IsPartial"/> are included in equality because a change in those modifiers must invalidate the cached result.</summary>
 	public Location? Location { get; set; }
 
 	public override bool Equals(object? obj)

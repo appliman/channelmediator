@@ -91,8 +91,13 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     var withVersionning = GetAttributeValue<bool>(attributeData, "WithVersionning");
                     var scanAssemblies = GetAttributeArrayValue(attributeData, "ScanAssemblies");
 
-                    var isStatic = classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword);
-                    var isPartial = classDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword);
+                    var isStatic = false;
+                    var isPartial = false;
+                    foreach (var modifier in classDeclaration.Modifiers)
+                    {
+                        if (modifier.IsKind(SyntaxKind.StaticKeyword)) isStatic = true;
+                        else if (modifier.IsKind(SyntaxKind.PartialKeyword)) isPartial = true;
+                    }
 
                     return new MapApiExtensionInfo
                     {
