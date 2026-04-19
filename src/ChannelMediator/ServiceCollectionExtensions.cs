@@ -123,6 +123,17 @@ public static class ServiceCollectionExtensions
 		return services;
 	}
 
+	/// <summary>
+	/// Registers a stream pipeline behavior for a specific stream request type.
+	/// </summary>
+	public static IServiceCollection AddStreamPipelineBehavior<TRequest, TResponse, TBehavior>(this IServiceCollection services)
+		where TRequest : IStreamRequest<TResponse>
+		where TBehavior : class, IStreamPipelineBehavior<TRequest, TResponse>
+	{
+		services.AddScoped<IStreamPipelineBehavior<TRequest, TResponse>, TBehavior>();
+		return services;
+	}
+
 	private static void RegisterHandlers(IServiceCollection services, Assembly[] assemblies)
 	{
 		var handlerInterfaceType = typeof(IRequestHandler<,>);

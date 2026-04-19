@@ -194,12 +194,12 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         }
                     }
 
-                    if (httpVerb == "GET" || httpVerb == "DELETE")
+                    var (isResponseNullable, responseTypeName, isStream) = ExtractResponseTypeInfo(typeSymbol);
+
+                    if (httpVerb == "GET" || httpVerb == "DELETE" || isStream)
                     {
                         parameters = ExtractRecordParameters(typeSymbol);
                     }
-
-                    var (isResponseNullable, responseTypeName) = ExtractResponseTypeInfo(typeSymbol);
 
                     return new EndpointApiInfo
                     {
@@ -219,7 +219,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         UseHttpStandardVerbs = useHttpStandardVerbs,
                         Parameters = parameters,
                         IsResponseNullable = isResponseNullable,
-                        ResponseTypeName = responseTypeName
+                        ResponseTypeName = responseTypeName,
+                        IsStream = isStream
                     };
                 }
             }
@@ -253,8 +254,17 @@ public class MinimalApiGenerator : IIncrementalGenerator
         return parameters;
     }
 
-    private static (bool isNullable, string typeName) ExtractResponseTypeInfo(INamedTypeSymbol typeSymbol)
+    private static (bool isNullable, string typeName, bool isStream) ExtractResponseTypeInfo(INamedTypeSymbol typeSymbol)
     {
+        var iStreamInterface = typeSymbol.AllInterfaces
+            .FirstOrDefault(i => i.Name == "IStreamRequest" && i.TypeArguments.Length == 1);
+
+        if (iStreamInterface != null)
+        {
+            var responseType = iStreamInterface.TypeArguments[0];
+            return (false, responseType.ToDisplayString(), true);
+        }
+
         var iRequestInterface = typeSymbol.AllInterfaces
             .FirstOrDefault(i => i.Name == "IRequest" && i.TypeArguments.Length == 1);
 
@@ -263,11 +273,11 @@ public class MinimalApiGenerator : IIncrementalGenerator
             var responseType = iRequestInterface.TypeArguments[0];
             var isNullable = responseType.NullableAnnotation == NullableAnnotation.Annotated;
             var typeName = responseType.ToDisplayString();
-            
-            return (isNullable, typeName);
+
+            return (isNullable, typeName, false);
         }
 
-        return (false, "object");
+        return (false, "object", false);
     }
 
     private static void Execute(Compilation compilation, ImmutableArray<MapApiExtensionInfo?> mapApiClasses, ImmutableArray<EndpointApiInfo?> endpointApis, SourceProductionContext context)
@@ -378,7 +388,12 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     parameters = ExtractRecordParameters(typeSymbol);
                 }
 
-                var (isResponseNullable, responseTypeName) = ExtractResponseTypeInfo(typeSymbol);
+                var (isResponseNullable, responseTypeName, isStream) = ExtractResponseTypeInfo(typeSymbol);
+
+                if (httpVerb == "GET" || httpVerb == "DELETE" || isStream)
+                {
+                    parameters = ExtractRecordParameters(typeSymbol);
+                }
 
                 results.Add(new EndpointApiInfo
                 {
@@ -398,7 +413,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     UseHttpStandardVerbs = useHttpStandardVerbs,
                     Parameters = parameters,
                     IsResponseNullable = isResponseNullable,
-                    ResponseTypeName = responseTypeName
+                    ResponseTypeName = responseTypeName,
+                    IsStream = isStream
                 });
             }
         }
@@ -710,7 +726,35 @@ public class MinimalApiGenerator : IIncrementalGenerator
             var handlerLines = new List<string>();
             string lastHandlerLine;
 
-            if (endpoint.HttpVerb == "GET")
+            if (endpoint.IsStream)
+            {
+                string lambdaParams;
+                string requestCreation;
+
+                if (endpoint.Parameters.Any())
+                {
+                    var paramsList = string.Join(", ", endpoint.Parameters.Select(p => $"{p.Type} {p.Name}"));
+                    lambdaParams = $"{paramsList}, IMediator mediator, HttpResponse httpResponse, CancellationToken cancellationToken";
+                    requestCreation = $"new {endpoint.RequestTypeName}({string.Join(", ", endpoint.Parameters.Select(p => p.Name))})";
+                }
+                else
+                {
+                    lambdaParams = "IMediator mediator, HttpResponse httpResponse, CancellationToken cancellationToken";
+                    requestCreation = $"new {endpoint.RequestTypeName}()";
+                }
+
+                handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({lambdaParams}) =>");
+                handlerLines.Add("        {");
+                handlerLines.Add("            httpResponse.ContentType = \"application/x-ndjson\";");
+                handlerLines.Add($"            await foreach (var item in mediator.CreateStream({requestCreation}, cancellationToken))");
+                handlerLines.Add("            {");
+                handlerLines.Add("                await httpResponse.WriteAsync(System.Text.Json.JsonSerializer.Serialize(item, System.Text.Json.JsonSerializerOptions.Web), cancellationToken);");
+                handlerLines.Add("                await httpResponse.WriteAsync(\"\\n\", cancellationToken);");
+                handlerLines.Add("                await httpResponse.Body.FlushAsync(cancellationToken);");
+                handlerLines.Add("            }");
+                lastHandlerLine = "        })";
+            }
+            else if (endpoint.HttpVerb == "GET")
             {
                 if (endpoint.Parameters.Any())
                 {

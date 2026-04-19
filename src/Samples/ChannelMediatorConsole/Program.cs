@@ -30,6 +30,9 @@ var host = Host.CreateDefaultBuilder(args)
 		// Register SPECIFIC pipeline behaviors - these only apply to specific request types
 		services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddToCartRequest, CartItem>>();
 		services.AddPipelineBehavior<AddToCartRequest, CartItem, LoggingBehavior<AddToCartRequest, CartItem>>();
+
+		// Register stream pipeline behavior specific to StreamOrderItemsRequest
+		services.AddStreamPipelineBehavior<StreamOrderItemsRequest, OrderItem, StreamTimingBehavior>();
 	})
 	.Build();
 
@@ -86,6 +89,15 @@ Console.WriteLine($"  Product: {orderResult.Item.ProductCode}");
 Console.WriteLine($"  Total: {orderResult.Item.Total:C}");
 Console.WriteLine($"  Email Sent: {orderResult.EmailSent}");
 Console.WriteLine($"  Logged: {orderResult.Logged}");
+
+Console.WriteLine();
+Console.WriteLine("=== Testing IStreamRequest — Streaming Order Items ===");
+var streamRequest = new StreamOrderItemsRequest(Count: 5);
+Console.WriteLine("Items arrive one by one as they are produced (50 ms each):");
+await foreach (var item in mediator.CreateStream(streamRequest, cancellationToken))
+{
+	Console.WriteLine($"  [{item.Index}] {item.ProductCode} @ {item.Price:C}");
+}
 
 Console.WriteLine();
 Console.WriteLine("All tests completed successfully!");
