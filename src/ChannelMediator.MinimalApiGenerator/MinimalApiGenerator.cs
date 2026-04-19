@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using ChannelMediator.Generators.Shared;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
@@ -227,12 +228,6 @@ public class MinimalApiGenerator : IIncrementalGenerator
         return null;
     }
 
-    private static bool IsRecordCopyConstructor(IMethodSymbol constructor, INamedTypeSymbol containingType)
-    {
-        return constructor.Parameters.Length == 1
-            && SymbolEqualityComparer.Default.Equals(constructor.Parameters[0].Type.OriginalDefinition, containingType.OriginalDefinition);
-    }
-
     private static List<RequestParameter> ExtractRecordParameters(INamedTypeSymbol typeSymbol)
     {
         var parameters = new List<RequestParameter>();
@@ -241,7 +236,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
             .FirstOrDefault(c => c.MethodKind == MethodKind.Constructor
                 && !c.IsImplicitlyDeclared
                 && c.Parameters.Length > 0
-                && !IsRecordCopyConstructor(c, typeSymbol));
+                && !RoslynHelpers.IsRecordCopyConstructor(c, typeSymbol));
 
         if (primaryConstructor != null)
         {
