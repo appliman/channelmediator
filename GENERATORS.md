@@ -103,7 +103,7 @@ namespace MyApp.Contracts.Models;
 
 [EndpointApi(
 	GroupName = "Catalog",
-	EntityName = "products",
+	Path = "products",
 	UseHttpStandardVerbs = true,
 	Summary = "Get a product by ID",
 	Tags = new[] { "Products" })]
@@ -114,7 +114,7 @@ public record GetProductRequest(int Id) : IRequest<Product?>;
 // Models/SaveProductRequest.cs
 [EndpointApi(
 	GroupName = "Catalog",
-	EntityName = "products",
+	Path = "products",
 	Summary = "Save a product")]
 public record SaveProductRequest(Product Product) : IRequest<Product>;
 ```
@@ -123,7 +123,7 @@ public record SaveProductRequest(Product Product) : IRequest<Product>;
 // Models/DeleteProductRequest.cs
 [EndpointApi(
 	GroupName = "Catalog",
-	EntityName = "products",
+	Path = "products",
 	UseHttpStandardVerbs = true)]
 public record DeleteProductRequest(int Id) : IRequest<bool>;
 ```
@@ -282,7 +282,7 @@ For POST/PUT requests, the body is serialized as JSON. For DELETE, query string 
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `GroupName` | `string` | `"Default"` | Route group mapped to `/api/{groupName}` (lower-cased) |
-| `EntityName` | `string` | Request name minus `Request` suffix | Entity segment appended to the group prefix |
+| `Path` | `string` | Class name minus `Request` suffix and leading `Get` prefix, in kebab-case | Path segment appended to the group prefix (e.g. `GetProductById` → `product-by-id`) |
 | `Tags` | `string[]` | `[]` | OpenAPI tags for Swagger UI grouping |
 | `Summary` | `string?` | `null` | Short endpoint description for Swagger UI |
 | `Description` | `string?` | `null` | Detailed description (supports Markdown) |
@@ -377,7 +377,88 @@ flowchart LR
 	B --> A
 ```
 
-## API Versioning Support
+## Streaming Endpoints (`IStreamRequest<T>`)
+
+Requests that implement `IStreamRequest<T>` are automatically detected and mapped as **NDJSON streaming GET endpoints** on the server, and as `IStreamRequestHandler<TRequest, TResponse>` on the client.
+
+### Define a Stream Request
+
+```csharp
+// Models/GetOrderLinesQuery.cs
+[EndpointApi(GroupName = "Orders", UseHttpStandardVerbs = true)]
+public record GetOrderLinesQuery(int OrderId) : IStreamRequest<OrderLineDto>;
+```
+
+> Auto-derived path: `GetOrderLinesQuery` → strip `Get` → `order-lines-query` → route `/api/orders/order-lines-query`
+
+### Generated Server Endpoint
+
+The generator emits a `MapGet` that streams NDJSON line-by-line:
+
+```csharp
+// Auto-generated
+orders.MapGet("/order-lines-query", async (int orderId, IMediator mediator, HttpResponse httpResponse, CancellationToken cancellationToken) =>
+{
+    httpResponse.ContentType = "application/x-ndjson";
+    await foreach (var item in mediator.CreateStream(new GetOrderLinesQuery(orderId), cancellationToken))
+    {
+        await httpResponse.WriteAsync(JsonSerializer.Serialize(item, JsonSerializerOptions.Web), cancellationToken);
+        await httpResponse.WriteAsync("\n", cancellationToken);
+        await httpResponse.Body.FlushAsync(cancellationToken);
+    }
+});
+```
+
+### Generated Client Handler
+
+The client handler implements `IStreamRequestHandler<TRequest, TResponse>` and reads the NDJSON stream line-by-line using `HttpCompletionOption.ResponseHeadersRead`:
+
+```csharp
+// Auto-generated — GetOrderLinesQueryHandler.g.cs
+internal class GetOrderLinesQueryHandler : IStreamRequestHandler<GetOrderLinesQuery, OrderLineDto>
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public GetOrderLinesQueryHandler(IHttpClientFactory httpClientFactory)
+        => _httpClientFactory = httpClientFactory;
+
+    public async IAsyncEnumerable<OrderLineDto> Handle(
+        GetOrderLinesQuery request,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var httpClient = _httpClientFactory.CreateClient("ApiClient");
+        var qs = $"?orderId={request.OrderId}";
+        var url = $"{httpClient.BaseAddress}orders/order-lines-query{qs}";
+        using var response = await httpClient.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, url),
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var reader = new StreamReader(stream);
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            var item = JsonSerializer.Deserialize<OrderLineDto>(line, JsonSerializerOptions.Web);
+            if (item is not null)
+            {
+                yield return item;
+            }
+        }
+    }
+}
+```
+
+### Consuming the Stream (client-side)
+
+```csharp
+await foreach (var line in mediator.CreateStream(new GetOrderLinesQuery(42), cancellationToken))
+{
+    Console.WriteLine($"Line: {line.ProductName} x{line.Quantity}");
+}
+```
+
+
 
 Enable API versioning by setting `WithVersionning = true` on the `[MapApiExtension]` attribute:
 
@@ -416,7 +497,7 @@ Use the `AuthenticationSchemes` property to require authentication on an endpoin
 ```csharp
 [EndpointApi(
 	GroupName = "Catalog",
-	EntityName = "products",
+	Path = "products",
 	UseHttpStandardVerbs = true,
 	AuthenticationSchemes = new[] { "Bearer" })]
 public record GetProductRequest(int Id) : IRequest<Product?>;

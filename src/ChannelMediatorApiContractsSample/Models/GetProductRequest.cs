@@ -1,8 +1,8 @@
-﻿namespace ChannelMediatorApiContractsSample.Models;
+namespace ChannelMediatorApiContractsSample.Models;
 
 [EndpointApi(
 	GroupName = "Catalog",
-	EntityName = "products",
+	Path = "products",
 	UseHttpStandardVerbs = true
 )]
 public record GetProductRequest(int Id) : IRequest<Product?>;

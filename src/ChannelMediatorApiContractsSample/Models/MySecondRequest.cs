@@ -1,8 +1,8 @@
-﻿namespace ChannelMediatorApiContractsSample.Models;
+namespace ChannelMediatorApiContractsSample.Models;
 
 [EndpointApi(
 	GroupName = "MyGroup",
-	EntityName = "mysecond",
+	Path = "mysecond",
 	Tags = new[] { "Test" },
 	Summary = "Second test endpoint",
 	Description = "This is a test endpoint for MySecondRequest",

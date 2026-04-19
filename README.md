@@ -268,10 +268,10 @@ Decorate your request contracts with `[EndpointApi]` and a mapper class with `[M
 
 ```csharp
 // 1. Shared contracts project — install ChannelMediator.MinimalApiGenerator.Abstraction
-[EndpointApi(GroupName = "Catalog", EntityName = "products", UseHttpStandardVerbs = true)]
+[EndpointApi(GroupName = "Catalog", Path = "products", UseHttpStandardVerbs = true)]
 public record GetProductRequest(int Id) : IRequest<Product?>;
 
-[EndpointApi(GroupName = "Catalog", EntityName = "products")]
+[EndpointApi(GroupName = "Catalog", Path = "products")]
 public record SaveProductRequest(Product Product) : IRequest<Product>;
 
 // 2. Server project — install ChannelMediator.MinimalApiGenerator

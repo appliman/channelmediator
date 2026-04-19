@@ -37,8 +37,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor InvalidEntityNameDescriptor = new(
         id: "CMAPI004",
-        title: "EndpointApi entity name is invalid",
-        messageFormat: "Endpoint '{0}' declares EntityName '{1}', but entity names must be lowercase and valid in a URL path segment. Use only [a-z], [0-9], '-' or '_'. Code generation has been skipped.",
+        title: "EndpointApi path is invalid",
+        messageFormat: "Endpoint '{0}' declares Path '{1}', but path values must be lowercase and valid URL path segments. Use only [a-z], [0-9], '-' or '_'. Code generation has been skipped.",
         category: "ChannelMediator.MinimalApiGenerator",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -163,8 +163,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
                     var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
                     var hasExplicitGroupName = attributeData?.NamedArguments.Any(na => na.Key == "GroupName") == true;
-                    var entityName = GetAttributeValue<string>(attributeData, "EntityName") ?? CreateDefaultEntityName(typeSymbol.Name);
-                    var hasExplicitEntityName = attributeData?.NamedArguments.Any(na => na.Key == "EntityName") == true;
+                    var path = GetAttributeValue<string>(attributeData, "Path") ?? CreateDefaultPath(typeSymbol.Name);
+                    var hasExplicitPath = attributeData?.NamedArguments.Any(na => na.Key == "Path") == true;
                     var tags = GetAttributeArrayValue(attributeData, "Tags");
                     var summary = GetAttributeValue<string>(attributeData, "Summary");
                     var description = GetAttributeValue<string>(attributeData, "Description");
@@ -209,8 +209,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         GroupName = groupName,
                         HasExplicitGroupName = hasExplicitGroupName,
                         Location = typeDeclaration.GetLocation(),
-                        EntityName = entityName,
-                        HasExplicitEntityName = hasExplicitEntityName,
+                        Path = path,
+                        HasExplicitPath = hasExplicitPath,
                         Tags = tags,
                         Summary = summary,
                         Description = description,
@@ -360,8 +360,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
                 var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
                 var hasExplicitGroupName = attributeData.NamedArguments.Any(na => na.Key == "GroupName");
-                var entityName = GetAttributeValue<string>(attributeData, "EntityName") ?? CreateDefaultEntityName(typeSymbol.Name);
-                var hasExplicitEntityName = attributeData.NamedArguments.Any(na => na.Key == "EntityName");
+                var path = GetAttributeValue<string>(attributeData, "Path") ?? CreateDefaultPath(typeSymbol.Name);
+                var hasExplicitPath = attributeData.NamedArguments.Any(na => na.Key == "Path");
                 var tags = GetAttributeArrayValue(attributeData, "Tags");
                 var summary = GetAttributeValue<string>(attributeData, "Summary");
                 var description = GetAttributeValue<string>(attributeData, "Description");
@@ -403,8 +403,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     GroupName = groupName,
                     HasExplicitGroupName = hasExplicitGroupName,
                     Location = typeSymbol.Locations.FirstOrDefault(),
-                    EntityName = entityName,
-                    HasExplicitEntityName = hasExplicitEntityName,
+                    Path = path,
+                    HasExplicitPath = hasExplicitPath,
                     Tags = tags,
                     Summary = summary,
                     Description = description,
@@ -497,26 +497,31 @@ public class MinimalApiGenerator : IIncrementalGenerator
             || endpoint.GroupName.Any(character => !char.IsLetterOrDigit(character));
     }
 
-    private static bool IsInvalidEntityName(EndpointApiInfo endpoint)
+    private static bool IsInvalidPath(EndpointApiInfo endpoint)
     {
-        if (!endpoint.HasExplicitEntityName)
+        if (!endpoint.HasExplicitPath)
         {
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(endpoint.EntityName))
+        if (string.IsNullOrWhiteSpace(endpoint.Path))
         {
             return true;
         }
 
-        return endpoint.EntityName.Any(character => !char.IsLower(character) && !char.IsDigit(character) && character != '-' && character != '_');
+        return endpoint.Path.Any(character => !char.IsLower(character) && !char.IsDigit(character) && character != '-' && character != '_');
     }
 
-    private static string CreateDefaultEntityName(string typeName)
+    private static string CreateDefaultPath(string typeName)
     {
         var baseName = typeName.EndsWith("Request", StringComparison.Ordinal)
             ? typeName.Substring(0, typeName.Length - "Request".Length)
             : typeName;
+
+        if (baseName.StartsWith("Get", StringComparison.Ordinal) && baseName.Length > 3)
+        {
+            baseName = baseName.Substring(3);
+        }
 
         return ToKebabCase(baseName);
     }
@@ -722,7 +727,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
     {
         foreach (var endpoint in endpoints)
         {
-            var entityName = endpoint.EntityName.ToLowerInvariant();
+            var entityName = endpoint.Path.ToLowerInvariant();
             var handlerLines = new List<string>();
             string lastHandlerLine;
 

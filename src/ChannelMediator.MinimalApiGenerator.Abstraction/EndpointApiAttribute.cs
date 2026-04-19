@@ -14,7 +14,7 @@
 /// <code>
 /// [EndpointApi(
 ///     GroupName = "Catalog",
-///     EntityName = "products",
+///     Path = "products",
 ///     Summary = "Get a product by ID",
 ///     UseHttpStandardVerbs = true)]
 /// public record GetProductRequest(int Id) : IRequest&lt;Product?&gt;;
@@ -31,11 +31,15 @@ public class EndpointApiAttribute : Attribute
 	public string GroupName { get; set; } = null!;
 
 	/// <summary>
-	/// Gets or sets the entity segment appended to the group prefix.
-	/// Defaults to the request type name with the <c>Request</c> suffix removed (lower-cased).
+	/// Gets or sets the path segment appended to the group prefix.
+	/// When not set, it is auto-derived from the request type name in kebab-case,
+	/// with the <c>Request</c> suffix and any leading <c>Get</c> prefix removed.
 	/// </summary>
-	/// <example><c>EntityName = "products"</c> → full route <c>/api/catalog/products</c></example>
-	public string EntityName { get; set; } = null!;
+	/// <example>
+	/// <c>Path = "products"</c> → full route <c>/api/catalog/products</c>;
+	/// <c>GetProductById</c> (no explicit path) → <c>/api/catalog/product-by-id</c>
+	/// </example>
+	public string Path { get; set; } = null!;
 
 	/// <summary>
 	/// Gets or sets the OpenAPI tags applied to this endpoint via <c>.WithTags(...)</c>.
