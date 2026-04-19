@@ -10,8 +10,8 @@ internal class EndpointApiInfo
 	public string GroupName { get; set; } = null!;
 	public bool HasExplicitGroupName { get; set; }
 	public Location? Location { get; set; }
-	public string EntityName { get; set; } = null!;
-	public bool HasExplicitEntityName { get; set; }
+	public string Path { get; set; } = null!;
+	public bool HasExplicitPath { get; set; }
 	public string[] Tags { get; set; } = Array.Empty<string>();
 	public string? Summary { get; set; }
 	public string? Description { get; set; }

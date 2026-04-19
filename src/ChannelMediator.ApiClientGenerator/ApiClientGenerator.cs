@@ -69,7 +69,7 @@ public class ApiClientGenerator : IIncrementalGenerator
 		if (attributeData is null) return null;
 
 		var groupName = GetNamedArgValue<string>(attributeData, "GroupName") ?? "Default";
-		var entityName = GetNamedArgValue<string>(attributeData, "EntityName") ?? typeSymbol.Name.Replace("Request", "");
+		var path = GetNamedArgValue<string>(attributeData, "Path") ?? CreateDefaultPath(typeSymbol.Name);
 		var useHttpStandardVerbs = GetNamedArgValue<bool>(attributeData, "UseHttpStandardVerbs");
 
 		var httpVerb = "POST";
@@ -105,7 +105,7 @@ public class ApiClientGenerator : IIncrementalGenerator
 			RequestShortName = typeSymbol.Name,
 			Namespace = typeSymbol.ContainingNamespace.ToDisplayString(),
 			GroupName = groupName,
-			EntityName = entityName,
+			Path = path,
 			HttpVerb = httpVerb,
 			Parameters = parameters,
 			IsResponseNullable = isNullable,
@@ -191,7 +191,7 @@ public class ClientApiException : Exception
 		var sb = new StringBuilder();
 		var responseType = ep.ResponseTypeName;
 		var cleanResponse = responseType.TrimEnd('?');
-		var route = $"{ep.GroupName.ToLowerInvariant()}/{ep.EntityName.ToLowerInvariant()}";
+		var route = $"{ep.GroupName.ToLowerInvariant()}/{ep.Path.ToLowerInvariant()}";
 
 		if (ep.IsStream)
 		{
@@ -361,6 +361,63 @@ public class ClientApiException : Exception
 		return arg.Value.Value is T value ? value : default;
 	}
 
+	private static string CreateDefaultPath(string typeName)
+	{
+		var baseName = typeName.EndsWith("Request", StringComparison.Ordinal)
+			? typeName.Substring(0, typeName.Length - "Request".Length)
+			: typeName;
+
+		if (baseName.StartsWith("Get", StringComparison.Ordinal) && baseName.Length > 3)
+		{
+			baseName = baseName.Substring(3);
+		}
+
+		return ToKebabCase(baseName);
+	}
+
+	private static string ToKebabCase(string value)
+	{
+		if (string.IsNullOrWhiteSpace(value))
+		{
+			return "endpoint";
+		}
+
+		var sb = new System.Text.StringBuilder(value.Length + 8);
+
+		for (int i = 0; i < value.Length; i++)
+		{
+			var character = value[i];
+			if (!char.IsLetterOrDigit(character))
+			{
+				if (sb.Length > 0 && sb[sb.Length - 1] != '-')
+				{
+					sb.Append('-');
+				}
+
+				continue;
+			}
+
+			var shouldInsertSeparator = sb.Length > 0
+				&& sb[sb.Length - 1] != '-'
+				&& char.IsUpper(character)
+				&& (char.IsLower(value[i - 1]) || (i + 1 < value.Length && char.IsLower(value[i + 1])));
+
+			if (shouldInsertSeparator)
+			{
+				sb.Append('-');
+			}
+
+			sb.Append(char.ToLowerInvariant(character));
+		}
+
+		if (sb.Length > 0 && sb[sb.Length - 1] == '-')
+		{
+			sb.Length--;
+		}
+
+		return sb.Length == 0 ? "endpoint" : sb.ToString();
+	}
+
 	private class ApiClientInfo
 	{
 		public IAssemblySymbol ContractsAssembly { get; set; } = null!;
@@ -374,7 +431,7 @@ public class ClientApiException : Exception
 		public string RequestShortName { get; set; } = null!;
 		public string Namespace { get; set; } = null!;
 		public string GroupName { get; set; } = null!;
-		public string EntityName { get; set; } = null!;
+		public string Path { get; set; } = null!;
 		public string HttpVerb { get; set; } = "POST";
 		public List<RequestParameter> Parameters { get; set; } = new();
 		public bool IsResponseNullable { get; set; }

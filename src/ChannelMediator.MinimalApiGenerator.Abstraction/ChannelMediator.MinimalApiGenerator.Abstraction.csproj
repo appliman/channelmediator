@@ -10,7 +10,7 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 
-		<Version>1.0.0.0</Version>
+		<Version>1.1.1.0</Version>
 		<Authors>Appliman</Authors>
 		<Description>Abstractions and attributes for ChannelMediator Minimal API source generator — decorate IRequest handlers to auto-register ASP.NET Core Minimal API endpoints.</Description>
 		<PackageProjectUrl>https://github.com/appliman/channelmediator</PackageProjectUrl>
