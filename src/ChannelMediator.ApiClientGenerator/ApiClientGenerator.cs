@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using ChannelMediator.Generators.Shared;
+using Microsoft.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
@@ -83,7 +84,7 @@ public class ApiClientGenerator : IIncrementalGenerator
 		var parameters = new List<RequestParameter>();
 		var primaryCtor = typeSymbol.Constructors.FirstOrDefault(c =>
 			c.Parameters.Length > 0
-			&& !(c.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type.OriginalDefinition, typeSymbol.OriginalDefinition)));
+			&& !RoslynHelpers.IsRecordCopyConstructor(c, typeSymbol));
 		if (primaryCtor != null)
 		{
 			foreach (var p in primaryCtor.Parameters)

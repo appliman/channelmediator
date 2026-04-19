@@ -17,9 +17,10 @@ Compatible with **.NET 8**, **.NET 9**, and **.NET 10**.
 
 ## ✨ Features
 
-- ✅ **MediatR Compatible** - Familiar API (`Send` / `Publish`)
+- ✅ **MediatR Compatible** - Familiar API (`Send` / `Publish` / `CreateStream`)
 - ✅ **Channel-Based** - Asynchronous processing with natural backpressure
 - ✅ **Pipeline Behaviors** - Global AND specific
+- ✅ **Streaming** - `IAsyncEnumerable<T>` with `IStreamRequest<T>` and stream pipeline behaviors
 - ✅ **Parallel Notifications** - Sequential or parallel broadcasting
 - ✅ **High Performance** - Channel-based with modern optimizations
 - ✅ **Azure Service Bus** - Distributed messaging with queues and topics
@@ -177,6 +178,68 @@ public class ValidationBehavior<TRequest, TResponse>
 services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddToCartRequest, CartItem>>();
 ```
 
+## 🌊 Streaming
+
+Stream large or incremental datasets with `IStreamRequest<T>` and `IAsyncEnumerable<T>`. Streaming requests **bypass the channel pump** and are dispatched directly, so they don't block other requests.
+
+### Define a Stream Request
+
+```csharp
+public record GetOrderLinesQuery(int OrderId) : IStreamRequest<OrderLineDto>;
+
+public class GetOrderLinesHandler : IStreamRequestHandler<GetOrderLinesQuery, OrderLineDto>
+{
+    private readonly IOrderRepository _repo;
+
+    public GetOrderLinesHandler(IOrderRepository repo) => _repo = repo;
+
+    public async IAsyncEnumerable<OrderLineDto> Handle(
+        GetOrderLinesQuery request,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await foreach (var line in _repo.StreamOrderLinesAsync(request.OrderId, cancellationToken))
+        {
+            yield return line;
+        }
+    }
+}
+```
+
+### Usage
+
+```csharp
+await foreach (var line in mediator.CreateStream(new GetOrderLinesQuery(42), cancellationToken))
+{
+    Console.WriteLine(line);
+}
+```
+
+### Stream Pipeline Behaviors
+
+```csharp
+public class StreamLoggingBehavior<TRequest, TResponse>
+    : IStreamPipelineBehavior<TRequest, TResponse>
+    where TRequest : IStreamRequest<TResponse>
+{
+    public async IAsyncEnumerable<TResponse> Handle(
+        TRequest request,
+        StreamHandlerDelegate<TResponse> next,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Stream starting: {typeof(TRequest).Name}");
+        await foreach (var item in next().WithCancellation(cancellationToken))
+        {
+            yield return item;
+        }
+        Console.WriteLine($"Stream completed: {typeof(TRequest).Name}");
+    }
+}
+
+// Registration
+services.AddScoped<IStreamPipelineBehavior<GetOrderLinesQuery, OrderLineDto>,
+    StreamLoggingBehavior<GetOrderLinesQuery, OrderLineDto>>();
+```
+
 ## 📊 Available APIs
 
 | Method | Return Type | Description |
@@ -184,6 +247,7 @@ services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddT
 | `Send<TResponse>(IRequest<TResponse>, CancellationToken)` | `Task<TResponse>` | Sends a request to a single handler and returns the response |
 | `Send(IRequest, CancellationToken)` | `Task` | Sends a request without response (command) |
 | `Publish<TNotification>(TNotification, CancellationToken)` | `Task` | Publishes a notification to multiple handlers |
+| `CreateStream<TResponse>(IStreamRequest<TResponse>, CancellationToken)` | `IAsyncEnumerable<TResponse>` | Creates an async stream from a streaming handler |
 
 ## 📚 Documentation
 

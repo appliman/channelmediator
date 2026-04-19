@@ -4,6 +4,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 {
 	private readonly FrozenDictionary<Type, IRequestHandlerWrapper> _handlers;
 	private readonly FrozenDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
+	private readonly FrozenDictionary<Type, IStreamRequestHandlerWrapper> _streamHandlers;
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ChannelMediatorConfiguration _notificationConfiguration;
 	private readonly Channel<IRequestEnvelope> _channel;
@@ -14,10 +15,12 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
 		FrozenDictionary<Type, INotificationHandlerWrapper>? notificationHandlers = null,
 		IServiceProvider? serviceProvider = null,
-		ChannelMediatorConfiguration? notificationConfiguration = null)
+		ChannelMediatorConfiguration? notificationConfiguration = null,
+		FrozenDictionary<Type, IStreamRequestHandlerWrapper>? streamHandlers = null)
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
 		_notificationHandlers = notificationHandlers ?? FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
+		_streamHandlers = streamHandlers ?? FrozenDictionary<Type, IStreamRequestHandlerWrapper>.Empty;
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 		_channel = Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
@@ -111,6 +114,32 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		}
 
 		await Task.WhenAll(tasks);
+	}
+
+	/// <inheritdoc />
+	public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
+	{
+		if (request is null)
+		{
+			throw new ArgumentNullException(nameof(request));
+		}
+
+		if (!_streamHandlers.TryGetValue(request.GetType(), out var wrapper))
+		{
+			throw new InvalidOperationException($"No stream handler registered for request type '{request.GetType().FullName}'.");
+		}
+
+		return CastStream<TResponse>(wrapper.HandleAsync(request, cancellationToken));
+	}
+
+	private static async IAsyncEnumerable<TResponse> CastStream<TResponse>(
+		IAsyncEnumerable<object?> source,
+		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+	{
+		await foreach (var item in source.WithCancellation(cancellationToken))
+		{
+			yield return (TResponse)item!;
+		}
 	}
 
 	private async Task ProcessAsync()
