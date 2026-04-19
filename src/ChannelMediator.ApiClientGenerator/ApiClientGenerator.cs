@@ -81,7 +81,9 @@ public class ApiClientGenerator : IIncrementalGenerator
 		}
 
 		var parameters = new List<RequestParameter>();
-		var primaryCtor = typeSymbol.Constructors.FirstOrDefault(c => c.Parameters.Length > 0);
+		var primaryCtor = typeSymbol.Constructors.FirstOrDefault(c =>
+			c.Parameters.Length > 0
+			&& !(c.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(c.Parameters[0].Type.OriginalDefinition, typeSymbol.OriginalDefinition)));
 		if (primaryCtor != null)
 		{
 			foreach (var p in primaryCtor.Parameters)
