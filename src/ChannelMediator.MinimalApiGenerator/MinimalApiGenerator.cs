@@ -227,12 +227,21 @@ public class MinimalApiGenerator : IIncrementalGenerator
         return null;
     }
 
+    private static bool IsRecordCopyConstructor(IMethodSymbol constructor, INamedTypeSymbol containingType)
+    {
+        return constructor.Parameters.Length == 1
+            && SymbolEqualityComparer.Default.Equals(constructor.Parameters[0].Type.OriginalDefinition, containingType.OriginalDefinition);
+    }
+
     private static List<RequestParameter> ExtractRecordParameters(INamedTypeSymbol typeSymbol)
     {
         var parameters = new List<RequestParameter>();
 
         var primaryConstructor = typeSymbol.Constructors
-            .FirstOrDefault(c => c.Parameters.Length > 0);
+            .FirstOrDefault(c => c.MethodKind == MethodKind.Constructor
+                && !c.IsImplicitlyDeclared
+                && c.Parameters.Length > 0
+                && !IsRecordCopyConstructor(c, typeSymbol));
 
         if (primaryConstructor != null)
         {
