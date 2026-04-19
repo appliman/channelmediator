@@ -21,6 +21,7 @@ internal class EndpointApiInfo
 	public List<RequestParameter> Parameters { get; set; } = new();
 	public bool IsResponseNullable { get; set; }
 	public string ResponseTypeName { get; set; } = null!;
+	public bool IsStream { get; set; }
 
 	public override bool Equals(object? obj)
 	{

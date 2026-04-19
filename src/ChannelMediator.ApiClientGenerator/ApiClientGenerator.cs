@@ -97,7 +97,7 @@ public class ApiClientGenerator : IIncrementalGenerator
 			}
 		}
 
-		var (isNullable, responseType) = ExtractResponseType(typeSymbol);
+		var (isNullable, responseType, isStream) = ExtractResponseType(typeSymbol);
 
 		return new EndpointInfo
 		{
@@ -109,21 +109,32 @@ public class ApiClientGenerator : IIncrementalGenerator
 			HttpVerb = httpVerb,
 			Parameters = parameters,
 			IsResponseNullable = isNullable,
-			ResponseTypeName = responseType
+			ResponseTypeName = responseType,
+			IsStream = isStream
 		};
 	}
 
-	private static (bool isNullable, string typeName) ExtractResponseType(INamedTypeSymbol typeSymbol)
+	private static (bool isNullable, string typeName, bool isStream) ExtractResponseType(INamedTypeSymbol typeSymbol)
 	{
+		var iStreamInterface = typeSymbol.AllInterfaces
+			.FirstOrDefault(i => i.Name == "IStreamRequest" && i.TypeArguments.Length == 1);
+
+		if (iStreamInterface != null)
+		{
+			var rt = iStreamInterface.TypeArguments[0];
+			return (false, rt.ToDisplayString(), true);
+		}
+
 		var iface = typeSymbol.AllInterfaces
 			.FirstOrDefault(i => i.Name == "IRequest" && i.TypeArguments.Length == 1);
 
 		if (iface != null)
 		{
 			var rt = iface.TypeArguments[0];
-			return (rt.NullableAnnotation == NullableAnnotation.Annotated, rt.ToDisplayString());
+			return (rt.NullableAnnotation == NullableAnnotation.Annotated, rt.ToDisplayString(), false);
 		}
-		return (false, "object");
+
+		return (false, "object", false);
 	}
 
 	private static void Execute(Compilation compilation, SourceProductionContext context)
@@ -182,6 +193,12 @@ public class ClientApiException : Exception
 		var cleanResponse = responseType.TrimEnd('?');
 		var route = $"{ep.GroupName.ToLowerInvariant()}/{ep.EntityName.ToLowerInvariant()}";
 
+		if (ep.IsStream)
+		{
+			EmitStreamHandler(sb, client, ep, handlerName, route, cleanResponse);
+			return sb.ToString();
+		}
+
 		sb.AppendLine("using System.Net.Http;");
 		sb.AppendLine("using System.Net.Http.Json;");
 		sb.AppendLine("using System.Threading;");
@@ -224,6 +241,58 @@ public class ClientApiException : Exception
 		sb.AppendLine("    }");
 		sb.AppendLine("}");
 		return sb.ToString();
+	}
+
+	private static void EmitStreamHandler(StringBuilder sb, ApiClientInfo client, EndpointInfo ep, string handlerName, string route, string cleanResponse)
+	{
+		sb.AppendLine("using System.Collections.Generic;");
+		sb.AppendLine("using System.IO;");
+		sb.AppendLine("using System.Net.Http;");
+		sb.AppendLine("using System.Runtime.CompilerServices;");
+		sb.AppendLine("using System.Threading;");
+		sb.AppendLine("using ChannelMediator;");
+		sb.AppendLine($"using {client.OutputNamespace};");
+		sb.AppendLine();
+		sb.AppendLine($"namespace {client.OutputNamespace}.Handlers;");
+		sb.AppendLine();
+		sb.AppendLine($"/// <summary>Generated API client stream handler for <see cref=\"{ep.RequestShortName}\"/>.</summary>");
+		sb.AppendLine($"internal class {handlerName} : IStreamRequestHandler<{ep.RequestFullName}, {cleanResponse}>");
+		sb.AppendLine("{");
+		sb.AppendLine("    private readonly IHttpClientFactory _httpClientFactory;");
+		sb.AppendLine();
+		sb.AppendLine($"    public {handlerName}(IHttpClientFactory httpClientFactory)");
+		sb.AppendLine("    {");
+		sb.AppendLine("        _httpClientFactory = httpClientFactory;");
+		sb.AppendLine("    }");
+		sb.AppendLine();
+		sb.AppendLine($"    public async IAsyncEnumerable<{cleanResponse}> Handle({ep.RequestFullName} request, [EnumeratorCancellation] CancellationToken cancellationToken)");
+		sb.AppendLine("    {");
+		sb.AppendLine($"        var httpClient = _httpClientFactory.CreateClient(\"{client.HttpClientName}\");");
+		var qs = BuildQueryString(ep);
+		sb.AppendLine($"        var url = $\"{{httpClient.BaseAddress}}{route}{qs}\";");
+		sb.AppendLine("        using var response = await httpClient.GetAsync(url, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken);");
+		sb.AppendLine("        if (!response.IsSuccessStatusCode)");
+		sb.AppendLine("        {");
+		sb.AppendLine($"            throw new ClientApiException($\"Error calling api {route}\", response);");
+		sb.AppendLine("        }");
+		sb.AppendLine("        using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);");
+		sb.AppendLine("        using var reader = new System.IO.StreamReader(stream);");
+		sb.AppendLine("        while (!reader.EndOfStream)");
+		sb.AppendLine("        {");
+		sb.AppendLine("            cancellationToken.ThrowIfCancellationRequested();");
+		sb.AppendLine("            var line = await reader.ReadLineAsync(cancellationToken);");
+		sb.AppendLine("            if (string.IsNullOrWhiteSpace(line))");
+		sb.AppendLine("            {");
+		sb.AppendLine("                continue;");
+		sb.AppendLine("            }");
+		sb.AppendLine($"            var item = System.Text.Json.JsonSerializer.Deserialize<{cleanResponse}>(line, System.Text.Json.JsonSerializerOptions.Web);");
+		sb.AppendLine("            if (item is not null)");
+		sb.AppendLine("            {");
+		sb.AppendLine("                yield return item;");
+		sb.AppendLine("            }");
+		sb.AppendLine("        }");
+		sb.AppendLine("    }");
+		sb.AppendLine("}");
 	}
 
 	private static string BuildQueryString(EndpointInfo ep)
@@ -310,6 +379,7 @@ public class ClientApiException : Exception
 		public List<RequestParameter> Parameters { get; set; } = new();
 		public bool IsResponseNullable { get; set; }
 		public string ResponseTypeName { get; set; } = null!;
+		public bool IsStream { get; set; }
 
 		public override bool Equals(object? obj)
 			=> obj is EndpointInfo o && RequestFullName == o.RequestFullName;
