@@ -10,6 +10,7 @@
 - [Commands (Void Requests)](#-commands-void-requests)
 - [Notifications](#-notifications)
 - [Pipeline Behaviors](#-pipeline-behaviors)
+- [Streaming](#-streaming)
 - [Registration](#-registration)
 - [Runtime Dispatch](#-runtime-dispatch-send--publish-with-object)
 - [Key Differences](#-key-differences)
@@ -37,7 +38,7 @@
 | `Unit` | ✅ | ✅ | Identical struct |
 | Assembly scanning registration | ✅ | ✅ | Identical pattern |
 | `ISender` / `IPublisher` split | ✅ | ❌ | Single `IMediator` |
-| `IStreamRequestHandler<>` | ✅ | ❌ | Not supported |
+| `IStreamRequestHandler<>` | ✅ | ✅ | `IAsyncEnumerable<T>` return |
 | `INotificationPublisher` customization | ✅ | ⚡ | Built-in strategy |
 
 ---
@@ -327,6 +328,110 @@ services.AddOpenPipelineBehavior(typeof(LoggingBehavior<,>));
 // Specific — applies only to AddToCartRequest
 services.AddPipelineBehavior<AddToCartRequest, CartItem, ValidationBehavior<AddToCartRequest, CartItem>>();
 ```
+
+---
+
+## 🌊 Streaming
+
+Both MediatR and ChannelMediator support streaming via `IAsyncEnumerable<T>`. The interfaces are **identical** — only the dispatch method name differs.
+
+### MediatR
+
+```csharp
+using MediatR;
+
+public record GetOrderLinesQuery(int OrderId) : IStreamRequest<OrderLineDto>;
+
+public class GetOrderLinesHandler : IStreamRequestHandler<GetOrderLinesQuery, OrderLineDto>
+{
+    public async IAsyncEnumerable<OrderLineDto> Handle(
+        GetOrderLinesQuery request,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        foreach (var line in await FetchLinesAsync(request.OrderId, cancellationToken))
+        {
+            yield return line;
+        }
+    }
+}
+```
+
+```csharp
+// MediatR
+await foreach (var line in mediator.CreateStream(new GetOrderLinesQuery(42)))
+{
+    Console.WriteLine(line);
+}
+```
+
+### ChannelMediator
+
+```csharp
+using ChannelMediator;
+
+// Identical handler code — just change the using statement
+public record GetOrderLinesQuery(int OrderId) : IStreamRequest<OrderLineDto>;
+
+public class GetOrderLinesHandler : IStreamRequestHandler<GetOrderLinesQuery, OrderLineDto>
+{
+    public async IAsyncEnumerable<OrderLineDto> Handle(
+        GetOrderLinesQuery request,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        foreach (var line in await FetchLinesAsync(request.OrderId, cancellationToken))
+        {
+            yield return line;
+        }
+    }
+}
+```
+
+```csharp
+// ChannelMediator — identical call site
+await foreach (var line in mediator.CreateStream(new GetOrderLinesQuery(42)))
+{
+    Console.WriteLine(line);
+}
+```
+
+### Stream Pipeline Behaviors
+
+ChannelMediator provides `IStreamPipelineBehavior<TRequest, TResponse>` for cross-cutting concerns on streams (logging, authorization, etc.):
+
+```csharp
+public class StreamLoggingBehavior<TRequest, TResponse>
+    : IStreamPipelineBehavior<TRequest, TResponse>
+    where TRequest : IStreamRequest<TResponse>
+{
+    public async IAsyncEnumerable<TResponse> Handle(
+        TRequest request,
+        StreamHandlerDelegate<TResponse> next,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        Console.WriteLine($"Stream starting: {typeof(TRequest).Name}");
+        await foreach (var item in next().WithCancellation(cancellationToken))
+        {
+            yield return item;
+        }
+        Console.WriteLine($"Stream completed: {typeof(TRequest).Name}");
+    }
+}
+
+// Register (scoped per stream enumeration):
+services.AddScoped<IStreamPipelineBehavior<GetOrderLinesQuery, OrderLineDto>, StreamLoggingBehavior<GetOrderLinesQuery, OrderLineDto>>();
+```
+
+### Differences in Streaming
+
+| Aspect | MediatR | ChannelMediator |
+|--------|---------|-----------------|
+| Dispatch method | `CreateStream<T>()` | `CreateStream<T>()` |
+| Request marker | `IStreamRequest<T>` | `IStreamRequest<T>` |
+| Handler interface | `IStreamRequestHandler<,>` | `IStreamRequestHandler<,>` |
+| Handler method | `Handle()` | `Handle()` |
+| Stream pipeline | `IStreamPipelineBehavior<,>` | `IStreamPipelineBehavior<,>` |
+| Dispatch model | Direct call | Direct call (bypasses channel pump) |
+| Assembly scan | ✅ | ✅ |
 
 ---
 

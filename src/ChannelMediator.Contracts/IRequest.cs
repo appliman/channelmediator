@@ -14,3 +14,11 @@ public interface IRequest<out TResponse>
 public interface IRequest : IRequest<Unit>
 {
 }
+
+/// <summary>
+/// Represents a streaming request that returns an asynchronous sequence of response values.
+/// </summary>
+/// <typeparam name="TResponse">The type of each item yielded by the stream.</typeparam>
+public interface IStreamRequest<out TResponse>
+{
+}

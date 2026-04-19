@@ -31,5 +31,15 @@ public interface IMediator
 	/// <param name="cancellationToken">Optional cancellation token</param>
 	/// <returns>A task that represents the publish operation.</returns>
 	Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
+
+	/// <summary>
+	/// Creates an asynchronous stream for the given stream request.
+	/// The handler is dispatched directly (bypassing the channel pump).
+	/// </summary>
+	/// <typeparam name="TResponse">The type of each item yielded by the stream.</typeparam>
+	/// <param name="request">The stream request object.</param>
+	/// <param name="cancellationToken">Optional cancellation token.</param>
+	/// <returns>An asynchronous sequence of response items.</returns>
+	IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default);
 }
 

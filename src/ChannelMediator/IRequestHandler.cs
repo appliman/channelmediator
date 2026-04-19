@@ -38,3 +38,17 @@ public interface IRequestHandler<in TRequest, TResponse>
 	Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Handler for streaming requests that yield an asynchronous sequence of response values.
+/// </summary>
+/// <typeparam name="TRequest">The type of stream request handled by this instance.</typeparam>
+/// <typeparam name="TResponse">The type of each item yielded by the stream.</typeparam>
+public interface IStreamRequestHandler<in TRequest, out TResponse>
+	where TRequest : IStreamRequest<TResponse>
+{
+	/// <summary>
+	/// Handles the streaming request and yields response items asynchronously.
+	/// </summary>
+	IAsyncEnumerable<TResponse> Handle(TRequest request, CancellationToken cancellationToken);
+}
+

@@ -154,3 +154,72 @@ public class FailingCommandHandler : IRequestHandler<FailingCommand>
         await HandleAsync(request, cancellationToken);
     }
 }
+
+// ── Stream test helpers ──────────────────────────────────────────────────────
+
+public record NumberStreamRequest(int Count) : IStreamRequest<int>;
+
+public class NumberStreamHandler : IStreamRequestHandler<NumberStreamRequest, int>
+{
+    public async IAsyncEnumerable<int> Handle(
+        NumberStreamRequest request,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        for (var i = 1; i <= request.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return i;
+            await Task.Yield();
+        }
+    }
+}
+
+public record EmptyStreamRequest : IStreamRequest<string>;
+
+public class EmptyStreamHandler : IStreamRequestHandler<EmptyStreamRequest, string>
+{
+    public async IAsyncEnumerable<string> Handle(
+        EmptyStreamRequest request,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        yield break;
+    }
+}
+
+public class StreamLoggingBehavior<TRequest, TResponse> : IStreamPipelineBehavior<TRequest, TResponse>
+    where TRequest : IStreamRequest<TResponse>
+{
+    public List<string> Logs { get; } = new();
+
+    public async IAsyncEnumerable<TResponse> Handle(
+        TRequest request,
+        StreamHandlerDelegate<TResponse> next,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        Logs.Add($"Before: {request.GetType().Name}");
+        await foreach (var item in next().WithCancellation(cancellationToken))
+        {
+            yield return item;
+        }
+        Logs.Add($"After: {request.GetType().Name}");
+    }
+}
+
+public class StreamDoubleWrapBehavior : IStreamPipelineBehavior<NumberStreamRequest, int>
+{
+    public List<string> Order { get; } = new();
+
+    public async IAsyncEnumerable<int> Handle(
+        NumberStreamRequest request,
+        StreamHandlerDelegate<int> next,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        Order.Add("outer-before");
+        await foreach (var item in next().WithCancellation(cancellationToken))
+        {
+            yield return item;
+        }
+        Order.Add("outer-after");
+    }
+}

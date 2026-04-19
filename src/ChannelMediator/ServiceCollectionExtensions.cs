@@ -30,17 +30,25 @@ public static class ServiceCollectionExtensions
 
 		RegisterHandlers(services, assembliesToScan);
 		RegisterNotificationHandlers(services, assembliesToScan);
+		RegisterStreamHandlers(services, assembliesToScan);
 
 		// Register the factory first (singleton) - shared configuration
 		services.AddSingleton<IMediatorFactory>(sp =>
 		{
 			var wrappers = sp.GetServices<IRequestHandlerWrapper>();
-			var handlers = wrappers.ToFrozenDictionary(w => w.RequestType);
+			var handlers = wrappers
+				.GroupBy(w => w.RequestType)
+				.ToFrozenDictionary(g => g.Key, g => g.First());
 
 			var notificationWrappers = sp.GetServices<INotificationHandlerWrapper>();
 			var notificationHandlers = notificationWrappers.ToFrozenDictionary(w => w.NotificationType);
 
-			return new MediatorFactory(handlers, notificationHandlers, sp, notificationConfig);
+			var streamWrappers = sp.GetServices<IStreamRequestHandlerWrapper>();
+			var streamHandlers = streamWrappers
+				.GroupBy(w => w.RequestType)
+				.ToFrozenDictionary(g => g.Key, g => g.First());
+
+			return new MediatorFactory(handlers, notificationHandlers, sp, notificationConfig, streamHandlers);
 		});
 
 		// Register IMediator using the factory (transient to avoid deadlocks with nested calls)
@@ -228,6 +236,64 @@ public static class ServiceCollectionExtensions
 			{
 				return ActivatorUtilities.CreateInstance(sp, wrapperType);
 			});
+		}
+	}
+
+	/// <summary>
+	/// Registers a stream request handler and its wrapper for mediator streaming dispatch.
+	/// </summary>
+	/// <typeparam name="TRequest">The stream request type.</typeparam>
+	/// <typeparam name="TResponse">The type of each item yielded by the stream.</typeparam>
+	/// <typeparam name="THandler">The concrete stream handler implementation.</typeparam>
+	/// <param name="services">The service collection to update.</param>
+	/// <returns>The updated <see cref="IServiceCollection"/> instance.</returns>
+	public static IServiceCollection AddStreamRequestHandler<TRequest, TResponse, THandler>(this IServiceCollection services)
+		where TRequest : IStreamRequest<TResponse>
+		where THandler : class, IStreamRequestHandler<TRequest, TResponse>
+	{
+		services.AddScoped<IStreamRequestHandler<TRequest, TResponse>, THandler>();
+		services.AddSingleton<IStreamRequestHandlerWrapper>(sp =>
+			new StreamRequestHandlerWrapper<TRequest, TResponse>(sp));
+		return services;
+	}
+
+	private static void RegisterStreamHandlers(IServiceCollection services, Assembly[] assemblies)
+	{
+		var streamHandlerInterfaceType = typeof(IStreamRequestHandler<,>);
+		var registeredRequestTypes = new HashSet<Type>();
+
+		foreach (var assembly in assemblies)
+		{
+			var handlerTypes = assembly.GetTypes()
+				.Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition)
+				.Where(t => t.GetInterfaces().Any(i =>
+					i.IsGenericType && i.GetGenericTypeDefinition() == streamHandlerInterfaceType))
+				.ToList();
+
+			foreach (var handlerType in handlerTypes)
+			{
+				var handlerInterfaces = handlerType.GetInterfaces()
+					.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == streamHandlerInterfaceType)
+					.ToList();
+
+				foreach (var handlerInterface in handlerInterfaces)
+				{
+					var genericArgs = handlerInterface.GetGenericArguments();
+					var requestType = genericArgs[0];
+					var responseType = genericArgs[1];
+
+					if (!registeredRequestTypes.Add(requestType) || services.Any(sd => sd.ServiceType == handlerInterface))
+					{
+						continue;
+					}
+
+					services.AddScoped(handlerInterface, handlerType);
+
+					var wrapperType = typeof(StreamRequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
+					services.AddSingleton(typeof(IStreamRequestHandlerWrapper), sp =>
+						ActivatorUtilities.CreateInstance(sp, wrapperType));
+				}
+			}
 		}
 	}
 }
