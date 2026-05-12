@@ -10,6 +10,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	private readonly Channel<IRequestEnvelope> _channel;
 	private readonly CancellationTokenSource _cts = new();
 	private readonly Task _pump;
+	private readonly ILogger<Mediator> _logger;
 
 	internal Mediator(
 		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
@@ -23,6 +24,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		_streamHandlers = streamHandlers ?? FrozenDictionary<Type, IStreamRequestHandlerWrapper>.Empty;
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
+		_logger = _serviceProvider.GetService<ILogger<Mediator>>() ?? NullLogger<Mediator>.Instance;
 		_channel = Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
 		{
 			SingleReader = true,
@@ -76,6 +78,8 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		if (!_notificationHandlers.TryGetValue(notification.GetType(), out var wrapper))
 		{
+			_logger.LogWarning("No notification handler wrapper registered for type {NotificationType}. Ensure the assembly containing the INotificationHandler<{NotificationType}> implementation is passed to AddChannelMediator().",
+				notification.GetType().FullName, notification.GetType().Name);
 			return;
 		}
 
