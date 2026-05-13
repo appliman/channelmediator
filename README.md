@@ -4,9 +4,11 @@
 [![NuGet ChannelMediator.Contracts](https://img.shields.io/nuget/v/ChannelMediator.Contracts?label=ChannelMediator.Contracts&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.Contracts/)
 [![NuGet ChannelMediator.AzureBus](https://img.shields.io/nuget/v/ChannelMediator.AzureBus?label=ChannelMediator.AzureBus&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.AzureBus/)
 [![NuGet ChannelMediator.RabbitMQ](https://img.shields.io/nuget/v/ChannelMediator.RabbitMQ?label=ChannelMediator.RabbitMQ&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.RabbitMQ/)
+[![NuGet ChannelMediator.ApiGenerators.Abstraction](https://img.shields.io/nuget/v/ChannelMediator.ApiGenerators.Abstraction?label=ChannelMediator.ApiGenerators.Abstraction&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.ApiGenerators.Abstraction/)
 [![NuGet ChannelMediator.MinimalApiGenerator](https://img.shields.io/nuget/v/ChannelMediator.MinimalApiGenerator?label=ChannelMediator.MinimalApiGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.MinimalApiGenerator/)
-[![NuGet ChannelMediator.MinimalApiGenerator.Abstraction](https://img.shields.io/nuget/v/ChannelMediator.MinimalApiGenerator.Abstraction?label=ChannelMediator.MinimalApiGenerator.Abstraction&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.MinimalApiGenerator.Abstraction/)
 [![NuGet ChannelMediator.ApiClientGenerator](https://img.shields.io/nuget/v/ChannelMediator.ApiClientGenerator?label=ChannelMediator.ApiClientGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.ApiClientGenerator/)
+[![NuGet ChannelMediator.GrpcGenerator](https://img.shields.io/nuget/v/ChannelMediator.GrpcGenerator?label=ChannelMediator.GrpcGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.GrpcGenerator/)
+[![NuGet ChannelMediator.GrpcClientGenerator](https://img.shields.io/nuget/v/ChannelMediator.GrpcClientGenerator?label=ChannelMediator.GrpcClientGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.GrpcClientGenerator/)
 [![Build](https://github.com/appliman/channelmediator/actions/workflows/ci-publish.yml/badge.svg)](https://github.com/appliman/channelmediator/actions)
 [![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp)](https://learn.microsoft.com/dotnet/csharp/)
@@ -27,6 +29,8 @@ Compatible with **.NET 8**, **.NET 9**, and **.NET 10**.
 - ✅ **RabbitMQ** - Self-hosted distributed messaging with exchanges and queues
 - ✅ **Minimal API Generator** - Source-generated endpoint mapping from request attributes
 - ✅ **API Client Generator** - Source-generated `HttpClient` handlers for consuming generated APIs
+- ✅ **gRPC Generator** - Source-generated code-first gRPC services via `protobuf-net.Grpc`
+- ✅ **gRPC Client Generator** - Source-generated `IRequestHandler` calling gRPC services
 - ✅ **.NET 8 / 9 / 10** - Multi-targeted packages for current .NET versions
 
 ## 📦 Installation
@@ -258,16 +262,19 @@ services.AddScoped<IStreamPipelineBehavior<GetOrderLinesQuery, OrderLineDto>,
 - [🎭 Pipeline Behaviors](./PIPELINE_BEHAVIORS.md)
 - [📊 Sequence Diagram](./SEQUENCE_DIAGRAM.md)
 
-## 🔌 Minimal API & Client Generators
+## 🔌 API & gRPC Generators
 
-ChannelMediator provides **source generators** that eliminate boilerplate for ASP.NET Core Minimal APIs and their HTTP clients.
+ChannelMediator provides **Roslyn source generators** that eliminate boilerplate for ASP.NET Core Minimal APIs, their HTTP clients, and code-first gRPC services.
 
-### Server side — Auto-generate Minimal API endpoints
+> [!NOTE]
+> The shared attributes package was renamed from `ChannelMediator.MinimalApiGenerator.Abstraction` to **`ChannelMediator.ApiGenerators.Abstraction`** to reflect its broader scope (HTTP + gRPC).
 
-Decorate your request contracts with `[EndpointApi]` and a mapper class with `[MapApiExtension]`. The generator emits all `MapGet` / `MapPost` / `MapPut` / `MapDelete` calls automatically.
+### HTTP — Auto-generate Minimal API endpoints
+
+Decorate request contracts with `[EndpointApi]` (default `Protocol = EndpointProtocol.Http`) and a mapper class with `[MapApiExtension]`.
 
 ```csharp
-// 1. Shared contracts project — install ChannelMediator.MinimalApiGenerator.Abstraction
+// 1. Shared contracts project — install ChannelMediator.ApiGenerators.Abstraction
 [EndpointApi(GroupName = "Catalog", Path = "products", UseHttpStandardVerbs = true)]
 public record GetProductRequest(int Id) : IRequest<Product?>;
 
@@ -276,27 +283,54 @@ public record SaveProductRequest(Product Product) : IRequest<Product>;
 
 // 2. Server project — install ChannelMediator.MinimalApiGenerator
 [MapApiExtension]
-public static partial class MyRequestsMapper { }
+public static partial class MyHttpMapper { }
 
 // 3. Program.cs
-app.MapMyRequestsMapper(); // All endpoints are registered!
+app.MapMyHttpMapper(); // All HTTP endpoints registered!
 ```
 
-### Client side — Auto-generate HttpClient handlers
-
-In a client project, add a single assembly attribute. The generator creates `IRequestHandler` implementations that call the server via `HttpClient`.
+### HTTP Client — Auto-generate HttpClient handlers
 
 ```csharp
-// Install ChannelMediator.ApiClientGenerator
+// Client project — install ChannelMediator.ApiClientGenerator
 [assembly: ApiClient(typeof(GetProductRequest), HttpClientName = "ApiClient")]
 
-// Register the named HttpClient
 services.AddHttpClient("ApiClient")
     .ConfigureHttpClient(cfg => cfg.BaseAddress = new Uri("https://localhost:7031/api/"));
 
-// Use the mediator exactly as if the handler were local
 var product = await mediator.Send(new GetProductRequest(1));
 ```
+
+### gRPC — Auto-generate code-first gRPC services
+
+Set `Protocol = EndpointProtocol.Grpc` (or `Both`) on requests, then decorate a mapper with `[GrpcServiceExtension]`.
+
+```csharp
+// Shared contracts — set Grpc or Both on the protocol
+[EndpointApi(GroupName = "Catalog", Path = "products", Protocol = EndpointProtocol.Both)]
+public record GetProductRequest(int Id) : IRequest<Product?>;
+
+// Server project — install ChannelMediator.GrpcGenerator
+[GrpcServiceExtension]
+public static partial class MyGrpcMapper { }
+
+// Program.cs
+app.MapMyGrpcMapperGrpcServices(); // Registers gRPC service
+```
+
+### gRPC Client — Auto-generate gRPC client handlers
+
+```csharp
+// Client project — install ChannelMediator.GrpcClientGenerator
+[assembly: GrpcClient(typeof(GetProductRequest), GrpcClientName = "GrpcClient")]
+
+services.AddGrpcClient<ICatalogService>("GrpcClient")
+    .ConfigureChannel(o => o.Address = new Uri("https://localhost:7032"));
+
+var product = await mediator.Send(new GetProductRequest(1));
+```
+
+See [⚡ Generators documentation](./GENERATORS.md) for the full reference.
 
 👉 **[Full documentation →](./GENERATORS.md)**
 

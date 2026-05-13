@@ -1,83 +1,101 @@
-﻿# ⚡ Minimal API & Client Generators
+﻿# ⚡ API & gRPC Generators
 
-ChannelMediator ships three companion packages that use **Roslyn source generators** to eliminate boilerplate when building ASP.NET Core Minimal APIs and their HTTP clients.
+ChannelMediator ships five companion packages that use **Roslyn source generators** to eliminate boilerplate when building ASP.NET Core Minimal APIs, their HTTP clients, and code-first gRPC services.
 
 | Package | Role |
 |---|---|
-| `ChannelMediator.MinimalApiGenerator.Abstraction` | Attributes (`[EndpointApi]`, `[MapApiExtension]`, `[ApiClient]`) — no generator dependency |
+| `ChannelMediator.ApiGenerators.Abstraction` | Shared attributes (`[EndpointApi]`, `[MapApiExtension]`, `[ApiClient]`, `[GrpcServiceExtension]`, `[GrpcClient]`) — no generator dependency |
 | `ChannelMediator.MinimalApiGenerator` | Source generator that emits Minimal API endpoint registrations on the server |
 | `ChannelMediator.ApiClientGenerator` | Source generator that emits `IRequestHandler` implementations calling the server via `HttpClient` |
+| `ChannelMediator.GrpcGenerator` | Source generator that emits code-first gRPC service interfaces and implementations (requires `protobuf-net.Grpc`) |
+| `ChannelMediator.GrpcClientGenerator` | Source generator that emits `IRequestHandler` implementations calling the server via gRPC |
 
 ## Overview
 
 ```mermaid
 graph LR
 	subgraph Shared["📦 Contracts Project"]
-		A["[EndpointApi] request records"]
+		A["[EndpointApi] request records\n(Protocol = Http | Grpc | Both)"]
 	end
 
 	subgraph Server["🖥️ Server Project"]
 		B["[MapApiExtension] partial class"]
-		C["Generated MapXxx() extension method"]
+		B2["[GrpcServiceExtension] partial class"]
+		C["Generated MapXxx() extension"]
+		C2["Generated MapXxxGrpcServices()"]
 		D["Handler implementations"]
 	end
 
 	subgraph Client["📱 Client Project"]
-		E["[assembly: ApiClient(...)]"]
+		E["[assembly: ApiClient(...)]"] 
+		E2["[assembly: GrpcClient(...)]"] 
 		F["Generated IRequestHandler via HttpClient"]
+		F2["Generated IRequestHandler via gRPC"]
 	end
 
 	A -->|referenced by| B
 	B -->|source generator| C
+	A -->|referenced by| B2
+	B2 -->|source generator| C2
+	C & C2 -->|routes to| D
+
 	A -->|referenced by| E
 	E -->|source generator| F
-	C -->|routes to| D
+	A -->|referenced by| E2
+	E2 -->|source generator| F2
 	F -->|HTTP calls| C
+	F2 -->|gRPC calls| C2
 ```
 
 ## How It Works
 
 ```mermaid
 sequenceDiagram
-	participant Dev as Developer
-	participant Contracts as Contracts Project
-	participant SG_Server as MinimalApiGenerator
-	participant SG_Client as ApiClientGenerator
-	participant Server as ASP.NET Core App
-	participant Client as Client App
+    participant Dev as Developer
+    participant Contracts as Contracts Project
+    participant SG_Server as MinimalApiGenerator
+    participant SG_Client as ApiClientGenerator
+    participant Server as ASP.NET Core App
+    participant Client as Client App
 
-	Dev->>Contracts: Define request records with [EndpointApi]
-	Dev->>Server: Add [MapApiExtension] partial class
-	SG_Server->>Server: Generate Map{ClassName}() extension method
-	Dev->>Server: Call app.Map{ClassName}() in Program.cs
-	Server-->>Server: Endpoints registered automatically
+    Dev->>Contracts: Define request records with [EndpointApi]
+    Dev->>Server: Add [MapApiExtension] partial class
+    SG_Server->>Server: Generate Map{ClassName}() extension method
+    Dev->>Server: Call app.Map{ClassName}() in Program.cs
+    Server-->>Server: Endpoints registered automatically
 
-	Dev->>Client: Add [assembly: ApiClient(typeof(...))]
-	SG_Client->>Client: Generate IRequestHandler<TRequest, TResponse> per endpoint
-	Client->>Client: mediator.Send(request)
-	Client->>Server: HTTP request (GET/POST/PUT/DELETE)
-	Server->>Server: Mediator dispatches to real handler
-	Server-->>Client: HTTP response
+    Dev->>Client: Add [assembly: ApiClient(typeof(...))]
+    SG_Client->>Client: Generate IRequestHandler per endpoint
+    Client->>Client: mediator.Send(request)
+    Client->>Server: HTTP request (GET/POST/PUT/DELETE)
+    Server->>Server: Mediator dispatches to real handler
+    Server-->>Client: HTTP response
 ```
 
 ## Installation
 
 ```bash
 # Shared contracts project (attributes only, no generator)
-dotnet add package ChannelMediator.MinimalApiGenerator.Abstraction
+dotnet add package ChannelMediator.ApiGenerators.Abstraction
 
 # Server project (source generator for Minimal API endpoints)
 dotnet add package ChannelMediator.MinimalApiGenerator
 
 # Client project (source generator for HttpClient handlers)
 dotnet add package ChannelMediator.ApiClientGenerator
+
+# Server project (source generator for gRPC services)
+dotnet add package ChannelMediator.GrpcGenerator
+
+# Client project (source generator for gRPC client handlers)
+dotnet add package ChannelMediator.GrpcClientGenerator
 ```
 
 ## Step-by-Step Guide
 
 ### 1. Create a Shared Contracts Project
 
-This project contains your request/response records and is referenced by both server and client. It depends only on `ChannelMediator.Contracts` and `ChannelMediator.MinimalApiGenerator.Abstraction`.
+This project contains your request/response records and is referenced by both server and client. It depends only on `ChannelMediator.Contracts` and `ChannelMediator.ApiGenerators.Abstraction`.
 
 ```csharp
 // Models/Product.cs
@@ -97,7 +115,7 @@ Each request record that should be exposed as an HTTP endpoint is decorated with
 
 ```csharp
 // Models/GetProductRequest.cs
-using ChannelMediator.MinimalApiGenerator.Abstraction;
+using ChannelMediator.ApiGenerators.Abstraction;
 
 namespace MyApp.Contracts.Models;
 
@@ -136,7 +154,7 @@ Install `ChannelMediator.MinimalApiGenerator` and reference the contracts projec
 
 ```csharp
 // MapMyRequestApi.cs
-using ChannelMediator.MinimalApiGenerator.Abstraction;
+using ChannelMediator.ApiGenerators.Abstraction;
 
 namespace MyApp.Server;
 
@@ -187,7 +205,7 @@ Install `ChannelMediator.ApiClientGenerator` and reference the same contracts pr
 ```csharp
 // Program.cs
 using ChannelMediator;
-using ChannelMediator.MinimalApiGenerator.Abstraction;
+using ChannelMediator.ApiGenerators.Abstraction;
 using MyApp.Contracts.Models;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -288,6 +306,7 @@ For POST/PUT requests, the body is serialized as JSON. For DELETE, query string 
 | `Description` | `string?` | `null` | Detailed description (supports Markdown) |
 | `AuthenticationSchemes` | `string[]` | `[]` | Auth schemes; generates `.RequireAuthorization(...)` |
 | `UseHttpStandardVerbs` | `bool` | `false` | Infer HTTP verb from request type name (see table below) |
+| `Protocol` | `EndpointProtocol` | `Http` | Transport protocol(s): `Http`, `Grpc`, or `Both` |
 
 ### HTTP Verb Inference
 
@@ -308,6 +327,7 @@ When `UseHttpStandardVerbs = false` (default), all endpoints use **POST** with a
 |---|---|---|---|
 | `WithVersionning` | `bool` | `false` | Adds an `ApiVersionSet` parameter (requires `Asp.Versioning.Http`) |
 | `ScanAssemblies` | `string[]?` | `null` | Assembly names to scan; `null` = scan all referenced assemblies |
+| `JsonOptions` | `JsonSerializerOptionsPreset` | `Web` | JSON preset for stream endpoints — `Web` (camelCase, string enums) or `Default` (PascalCase, int enums) |
 
 ## `[ApiClient]` Attribute Reference
 
@@ -315,6 +335,14 @@ When `UseHttpStandardVerbs = false` (default), all endpoints use **POST** with a
 |---|---|---|---|
 | `ContractsAssemblyType` | `Type` | *(required)* | A type from the assembly containing the request contracts |
 | `HttpClientName` | `string` | `"ApiClient"` | Named `HttpClient` to inject via `IHttpClientFactory` |
+| `JsonOptions` | `JsonSerializerOptionsPreset` | `Web` | JSON preset for serialization — must match `[MapApiExtension].JsonOptions` |
+
+## `JsonSerializerOptionsPreset` Reference
+
+| Value | `JsonSerializerOptions` used | Enums | Property names |
+|---|---|---|---|
+| `Web` *(default)* | `JsonSerializerOptions.Web` | Strings | camelCase |
+| `Default` | Runtime default | Integers | PascalCase |
 
 ## Architecture Diagram
 
@@ -505,7 +533,92 @@ public record GetProductRequest(int Id) : IRequest<Product?>;
 
 The generator emits `.RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = "Bearer" })` on the endpoint.
 
-## Error Handling (Client)
+## gRPC Generator
+
+ChannelMediator.GrpcGenerator produces code-first gRPC services using `protobuf-net.Grpc`. No `.proto` files required.
+
+### Prerequisites
+
+```bash
+dotnet add package protobuf-net.Grpc.AspNetCore   # server
+dotnet add package protobuf-net.Grpc.ClientFactory # client
+```
+
+### 1. Mark requests with `Protocol = EndpointProtocol.Grpc` (or `Both`)
+
+```csharp
+// Contracts project
+[EndpointApi(GroupName = "Catalog", Path = "products",
+    UseHttpStandardVerbs = true,
+    Protocol = EndpointProtocol.Grpc)]      // or EndpointProtocol.Both
+public record GetProductRequest(int Id) : IRequest<Product?>;
+
+[EndpointApi(GroupName = "Catalog", Path = "products",
+    Protocol = EndpointProtocol.Both)]
+public record SaveProductRequest(Product Product) : IRequest<Product>;
+```
+
+> Use `EndpointProtocol.Both` to expose the same request over HTTP **and** gRPC simultaneously — both generators emit code for it.
+
+### 2. Add `[GrpcServiceExtension]` on the server
+
+```csharp
+// Server project — install ChannelMediator.GrpcGenerator
+[GrpcServiceExtension]
+public static partial class MyGrpcMapper { }
+```
+
+The generator emits:
+- An `ICatalogService` interface with `[ServiceContract]` / `[OperationContract]`
+- A `CatalogServiceImpl` class that delegates each call to `IMediator`
+- A `MapMyGrpcMapperGrpcServices(this IEndpointRouteBuilder)` extension method
+
+```csharp
+// Program.cs
+builder.Services.AddCodeFirstGrpc();
+
+app.MapMyGrpcMapperGrpcServices();
+```
+
+### 3. Consume gRPC from a client with `[GrpcClient]`
+
+```csharp
+// Client project — install ChannelMediator.GrpcClientGenerator
+[assembly: GrpcClient(typeof(MyContracts.Marker), GrpcClientName = "GrpcClient")]
+
+services.AddGrpcClient<ICatalogService>("GrpcClient")
+    .ConfigureChannel(o => o.Address = new Uri("https://localhost:7032"));
+
+// Use exactly like any other request
+var product = await mediator.Send(new GetProductRequest(1));
+```
+
+### `[GrpcServiceExtension]` Attribute Reference
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `ScanAssemblies` | `string[]?` | `null` | Assembly names to scan; `null` = all referenced assemblies |
+
+### `[GrpcClient]` Attribute Reference
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `ContractsAssemblyType` | `Type` | *(required)* | A type from the assembly containing the request contracts |
+| `GrpcClientName` | `string` | `"GrpcClient"` | Named gRPC client registered via `AddGrpcClient<I{GroupName}Service>(name)` |
+
+### Streaming over gRPC
+
+Requests implementing `IStreamRequest<T>` are emitted as `IAsyncEnumerable<T>` operations on the service interface, using `protobuf-net.Grpc` server-streaming semantics.
+
+```csharp
+[EndpointApi(GroupName = "Orders", Protocol = EndpointProtocol.Grpc,
+    UseHttpStandardVerbs = true)]
+public record GetOrderLinesQuery(int OrderId) : IStreamRequest<OrderLineDto>;
+```
+
+The generated client handler implements `IStreamRequestHandler<GetOrderLinesQuery, OrderLineDto>` and streams results via the gRPC channel.
+
+
 
 The generated client handlers throw a `ClientApiException` (auto-generated) when the server returns a non-success status code:
 
@@ -532,7 +645,7 @@ MyApp/
 │   │   └── DeleteProductRequest.cs           # [EndpointApi]
 │   └── MyApp.Contracts.csproj
 │       → ChannelMediator.Contracts
-│       → ChannelMediator.MinimalApiGenerator.Abstraction
+│       → ChannelMediator.ApiGenerators.Abstraction
 │
 ├── MyApp.Server/                             # ASP.NET Core API
 │   ├── Handlers/
@@ -540,16 +653,25 @@ MyApp/
 │   │   ├── SaveProductHandler.cs
 │   │   └── DeleteProductHandler.cs
 │   ├── MapMyRequestApi.cs                    # [MapApiExtension]
-│   ├── Program.cs                            # app.MapMyRequestsMapper()
+│   ├── MapMyGrpc.cs                          # [GrpcServiceExtension]
+│   ├── Program.cs                            # app.MapMyRequestApi() + app.MapMyGrpcGrpcServices()
 │   └── MyApp.Server.csproj
 │       → ChannelMediator
 │       → ChannelMediator.MinimalApiGenerator  (source generator)
+│       → ChannelMediator.GrpcGenerator        (source generator)
 │       → MyApp.Contracts
 │
-└── MyApp.Client/                             # Console / Blazor / etc.
-	├── Program.cs                            # [assembly: ApiClient(...)]
-	└── MyApp.Client.csproj
-		→ ChannelMediator
-		→ ChannelMediator.ApiClientGenerator   (source generator)
-		→ MyApp.Contracts
+├── MyApp.HttpClient/                         # HTTP client (e.g. console / Blazor)
+│   ├── Program.cs                            # [assembly: ApiClient(...)]
+│   └── MyApp.HttpClient.csproj
+│       → ChannelMediator
+│       → ChannelMediator.ApiClientGenerator   (source generator)
+│       → MyApp.Contracts
+│
+└── MyApp.GrpcClient/                         # gRPC client
+    ├── Program.cs                            # [assembly: GrpcClient(...)]
+    └── MyApp.GrpcClient.csproj
+        → ChannelMediator
+        → ChannelMediator.GrpcClientGenerator  (source generator)
+        → MyApp.Contracts
 ```

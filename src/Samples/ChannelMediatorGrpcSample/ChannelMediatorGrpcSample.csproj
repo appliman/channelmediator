@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.1.1" />
+		<PackageReference Include="System.ServiceModel.Primitives" Version="8.1.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\ChannelMediator.ApiGenerators.Abstraction\ChannelMediator.ApiGenerators.Abstraction.csproj" />
+		<ProjectReference Include="..\..\ChannelMediator.GrpcGenerator\ChannelMediator.GrpcGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\ChannelMediatorApiContractsSample\ChannelMediatorApiContractsSample.csproj" />
+		<ProjectReference Include="..\..\ChannelMediator\ChannelMediator.csproj" />
+	</ItemGroup>
+
+</Project>

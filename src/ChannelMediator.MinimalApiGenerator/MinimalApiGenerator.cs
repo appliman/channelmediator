@@ -94,7 +94,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                 var fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                if (fullName == "ChannelMediator.MinimalApiGenerator.Abstraction.MapApiExtensionAttribute")
+                if (fullName == "ChannelMediator.ApiGenerators.Abstraction.MapApiExtensionAttribute")
                 {
                     var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration);
                     if (classSymbol is null)
@@ -103,7 +103,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     }
 
                     var attributeData = classSymbol.GetAttributes()
-                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.MinimalApiGenerator.Abstraction.MapApiExtensionAttribute");
+                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.ApiGenerators.Abstraction.MapApiExtensionAttribute");
 
                     var withVersionning = GetAttributeValue<bool>(attributeData, "WithVersionning");
                     var scanAssemblies = GetAttributeArrayValue(attributeData, "ScanAssemblies");
@@ -113,8 +113,14 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     var isPartial = false;
                     foreach (var modifier in classDeclaration.Modifiers)
                     {
-                        if (modifier.IsKind(SyntaxKind.StaticKeyword)) isStatic = true;
-                        else if (modifier.IsKind(SyntaxKind.PartialKeyword)) isPartial = true;
+                        if (modifier.IsKind(SyntaxKind.StaticKeyword))
+                        {
+                            isStatic = true;
+                        }
+                        else if (modifier.IsKind(SyntaxKind.PartialKeyword))
+                        {
+                            isPartial = true;
+                        }
                     }
 
                     return new MapApiExtensionInfo
@@ -152,7 +158,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                 var fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                if (fullName == "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute")
+                if (fullName == "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute")
                 {
                     var typeSymbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration) as INamedTypeSymbol;
                     if (typeSymbol is null)
@@ -161,7 +167,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     }
 
                     var attributeData = typeSymbol.GetAttributes()
-                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute");
+                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute");
 
                     var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
                     var hasExplicitGroupName = attributeData?.NamedArguments.Any(na => na.Key == "GroupName") == true;
@@ -172,6 +178,18 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     var description = GetAttributeValue<string>(attributeData, "Description");
                     var authenticationSchemes = GetAttributeArrayValue(attributeData, "AuthenticationSchemes");
                     var useHttpStandardVerbs = GetAttributeValue<bool>(attributeData, "UseHttpStandardVerbs");
+                    var protocol = GetAttributeValue<int>(attributeData, "Protocol");
+
+                    // If Protocol was not set, default is Http (1). Only include if Http flag is set.
+                    if (protocol == 0)
+                    {
+                        protocol = 1;
+                    }
+
+                    if ((protocol & 1) == 0)
+                    {
+                        return null;
+                    }
 
                     var httpVerb = "POST";
                     var parameters = new List<RequestParameter>();
@@ -222,7 +240,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         Parameters = parameters,
                         IsResponseNullable = isResponseNullable,
                         ResponseTypeName = responseTypeName,
-                        IsStream = isStream
+                        IsStream = isStream,
+                        Protocol = protocol
                     };
                 }
             }
@@ -343,13 +362,15 @@ public class MinimalApiGenerator : IIncrementalGenerator
     private static List<EndpointApiInfo> GetEndpointApisFromReferencedAssemblies(Compilation compilation, string[] scanAssemblies)
     {
         var results = new List<EndpointApiInfo>();
-        var endpointApiAttributeName = "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute";
+        var endpointApiAttributeName = "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute";
         var filterByAssembly = scanAssemblies.Length > 0;
 
         foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
         {
             if (filterByAssembly && !scanAssemblies.Contains(reference.Name))
+            {
                 continue;
+            }
 
             var types = GetAllNamedTypes(reference.GlobalNamespace);
             foreach (var typeSymbol in types)
@@ -358,7 +379,9 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == endpointApiAttributeName);
 
                 if (attributeData is null)
+                {
                     continue;
+                }
 
                 var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
                 var hasExplicitGroupName = attributeData.NamedArguments.Any(na => na.Key == "GroupName");
@@ -369,6 +392,18 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var description = GetAttributeValue<string>(attributeData, "Description");
                 var authenticationSchemes = GetAttributeArrayValue(attributeData, "AuthenticationSchemes");
                 var useHttpStandardVerbs = GetAttributeValue<bool>(attributeData, "UseHttpStandardVerbs");
+                var protocol = GetAttributeValue<int>(attributeData, "Protocol");
+
+                // If Protocol was not set, default is Http (1). Only include if Http flag is set.
+                if (protocol == 0)
+                {
+                    protocol = 1;
+                }
+
+                if ((protocol & 1) == 0)
+                {
+                    continue;
+                }
 
                 var httpVerb = "POST";
                 var parameters = new List<RequestParameter>();
@@ -376,13 +411,21 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 if (useHttpStandardVerbs)
                 {
                     if (typeSymbol.Name.StartsWith("Get"))
+                    {
                         httpVerb = "GET";
+                    }
                     else if (typeSymbol.Name.StartsWith("Delete"))
+                    {
                         httpVerb = "DELETE";
+                    }
                     else if (typeSymbol.Name.StartsWith("Put") || typeSymbol.Name.StartsWith("Update"))
+                    {
                         httpVerb = "PUT";
+                    }
                     else if (typeSymbol.Name.StartsWith("Post") || typeSymbol.Name.StartsWith("Create") || typeSymbol.Name.StartsWith("Save"))
+                    {
                         httpVerb = "POST";
+                    }
                 }
 
                 if (httpVerb == "GET" || httpVerb == "DELETE")
@@ -416,7 +459,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     Parameters = parameters,
                     IsResponseNullable = isResponseNullable,
                     ResponseTypeName = responseTypeName,
-                    IsStream = isStream
+                    IsStream = isStream,
+                    Protocol = protocol
                 });
             }
         }
@@ -429,11 +473,15 @@ public class MinimalApiGenerator : IIncrementalGenerator
         foreach (var member in namespaceSymbol.GetMembers())
         {
             if (member is INamedTypeSymbol namedType)
+            {
                 yield return namedType;
+            }
             else if (member is INamespaceSymbol childNamespace)
             {
                 foreach (var type in GetAllNamedTypes(childNamespace))
+                {
                     yield return type;
+                }
             }
         }
     }

@@ -1,2 +1,2 @@
 ﻿global using ChannelMediator;
-global using ChannelMediator.MinimalApiGenerator.Abstraction;
+global using ChannelMediator.ApiGenerators.Abstraction;

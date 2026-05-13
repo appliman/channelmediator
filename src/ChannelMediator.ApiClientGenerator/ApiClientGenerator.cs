@@ -8,8 +8,8 @@ namespace ChannelMediator.ApiClientGenerator;
 [Generator]
 public class ApiClientGenerator : IIncrementalGenerator
 {
-	private const string EndpointApiAttributeFullName = "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute";
-	private const string ApiClientAttributeFullName = "ChannelMediator.MinimalApiGenerator.Abstraction.ApiClientAttribute";
+	private const string EndpointApiAttributeFullName = "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute";
+	private const string ApiClientAttributeFullName = "ChannelMediator.ApiGenerators.Abstraction.ApiClientAttribute";
 
 	public void Initialize(IncrementalGeneratorInitializationContext context)
 	{

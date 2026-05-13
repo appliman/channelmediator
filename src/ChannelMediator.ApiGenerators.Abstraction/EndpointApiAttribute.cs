@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator.MinimalApiGenerator.Abstraction;
+﻿namespace ChannelMediator.ApiGenerators.Abstraction;
 
 /// <summary>
 /// Marks an <c>IRequest</c> or <c>IRequest&lt;TResponse&gt;</c> class as a Minimal API endpoint
@@ -83,4 +83,14 @@ public class EndpointApiAttribute : Attribute
 	/// When <see langword="false"/> (default), all endpoints are mapped as POST.
 	/// </remarks>
 	public bool UseHttpStandardVerbs { get; set; } = false;
+
+	/// <summary>
+	/// Gets or sets the transport protocol(s) on which this endpoint is exposed.
+	/// </summary>
+	/// <remarks>
+	/// Defaults to <see cref="EndpointProtocol.Http"/> so that existing decorations are unaffected.
+	/// Set to <see cref="EndpointProtocol.Grpc"/> to expose only via gRPC, or
+	/// <see cref="EndpointProtocol.Both"/> to generate both HTTP and gRPC code for this request.
+	/// </remarks>
+	public EndpointProtocol Protocol { get; set; } = EndpointProtocol.Http;
 }

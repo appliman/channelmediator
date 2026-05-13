@@ -1,19 +1,15 @@
-﻿using ChannelMediator;
+using ChannelMediator;
 using ChannelMediator.ApiGenerators.Abstraction;
-using ChannelMediatorApiClientSample.Handlers;
 using ChannelMediatorApiContractsSample.Models;
+using ChannelMediatorGrpcClientSample;
 using Microsoft.Extensions.DependencyInjection;
+using ProtoBuf.Grpc.ClientFactory;
 
-[assembly: ApiClient(typeof(GetProductRequest), HttpClientName = "ApiClient")]
+[assembly: GrpcClient(typeof(GetProductRequest), GrpcClientName = "GrpcClient")]
 
 var services = new ServiceCollection();
 
 services.AddChannelMediator(null, typeof(Program).Assembly);
-
-services.AddHttpClient("ApiClient").ConfigureHttpClient(cfg =>
-{
-	cfg.BaseAddress = new Uri("http://localhost:5126/api/");
-});
 
 var sp = services.BuildServiceProvider();
 
@@ -21,10 +17,6 @@ var mediator = sp.GetRequiredService<IMediator>();
 
 var product = await mediator.Send(new GetProductRequest(1));
 
-// var x = new GetProductRequestHandler();
-
-Console.WriteLine(product!.Name);
+Console.WriteLine($"Product: {product?.Name} — Price: {product?.Price:C}");
 
 Console.ReadLine();
-
-

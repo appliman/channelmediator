@@ -1,4 +1,4 @@
-namespace ChannelMediator.MinimalApiGenerator.Abstraction;
+namespace ChannelMediator.ApiGenerators.Abstraction;
 
 /// <summary>
 /// Specifies which <c>System.Text.Json.JsonSerializerOptions</c> preset to use

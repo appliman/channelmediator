@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator.MinimalApiGenerator.Abstraction;
+﻿namespace ChannelMediator.ApiGenerators.Abstraction;
 
 /// <summary>
 /// Marks an assembly as an API client target for the source generator.

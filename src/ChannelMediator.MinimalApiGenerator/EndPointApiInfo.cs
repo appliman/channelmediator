@@ -22,6 +22,8 @@ internal class EndpointApiInfo
 	public bool IsResponseNullable { get; set; }
 	public string ResponseTypeName { get; set; } = null!;
 	public bool IsStream { get; set; }
+	/// <summary>Transport protocol flags: Http = 1, Grpc = 2, Both = 3. Default is Http (1).</summary>
+	public int Protocol { get; set; } = 1;
 
 	public override bool Equals(object? obj)
 	{
