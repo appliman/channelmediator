@@ -107,6 +107,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
                     var withVersionning = GetAttributeValue<bool>(attributeData, "WithVersionning");
                     var scanAssemblies = GetAttributeArrayValue(attributeData, "ScanAssemblies");
+                    var jsonOptions = GetAttributeValue<int>(attributeData, "JsonOptions");
 
                     var isStatic = false;
                     var isPartial = false;
@@ -124,6 +125,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         ScanAssemblies = scanAssemblies,
                         IsStatic = isStatic,
                         IsPartial = isPartial,
+                        JsonOptions = jsonOptions,
                         Location = classDeclaration.GetLocation()
                     };
                 }
@@ -609,12 +611,12 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
             if (ungroupedEndpoints.Count > 0)
             {
-                AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
+                AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true, mapApiClass.JsonOptions);
             }
         }
         else
         {
-            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
+            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true, mapApiClass.JsonOptions);
         }
 
         sb.AppendLine("    }");
@@ -626,7 +628,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 sb.AppendLine();
                 AppendMapMethodSignature(sb, mapApiClass, GetGroupMethodName(mapApiClass.ClassName, group.Key));
                 sb.AppendLine("    {");
-                AppendEndpointMappings(sb, group.ToList(), "routes", true);
+                AppendEndpointMappings(sb, group.ToList(), "routes", true, mapApiClass.JsonOptions);
                 sb.AppendLine("    }");
             }
         }
@@ -682,7 +684,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static void AppendEndpointMappings(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, bool createGroupRoute)
+    private static void AppendEndpointMappings(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, bool createGroupRoute, int jsonOptions = 0)
     {
         if (createGroupRoute)
         {
@@ -716,15 +718,19 @@ public class MinimalApiGenerator : IIncrementalGenerator
             sb.AppendLine(groupChain[groupChain.Count - 1] + ";");
             sb.AppendLine();
 
-            AppendEndpointMappingsCore(sb, endpoints, groupVariableName);
+            AppendEndpointMappingsCore(sb, endpoints, groupVariableName, jsonOptions);
             return;
         }
 
-        AppendEndpointMappingsCore(sb, endpoints, routeBuilderExpression);
+        AppendEndpointMappingsCore(sb, endpoints, routeBuilderExpression, jsonOptions);
     }
 
-    private static void AppendEndpointMappingsCore(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression)
+    private static void AppendEndpointMappingsCore(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, int jsonOptions = 0)
     {
+        var jsonOptionsArg = jsonOptions == 0
+            ? "System.Text.Json.JsonSerializerOptions.Web"
+            : null;
+
         foreach (var endpoint in endpoints)
         {
             var entityName = endpoint.Path.ToLowerInvariant();
@@ -753,7 +759,10 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 handlerLines.Add("            httpResponse.ContentType = \"application/x-ndjson\";");
                 handlerLines.Add($"            await foreach (var item in mediator.CreateStream({requestCreation}, cancellationToken))");
                 handlerLines.Add("            {");
-                handlerLines.Add("                await httpResponse.WriteAsync(System.Text.Json.JsonSerializer.Serialize(item, System.Text.Json.JsonSerializerOptions.Web), cancellationToken);");
+                var serializeExpr = jsonOptionsArg != null
+                    ? $"System.Text.Json.JsonSerializer.Serialize(item, {jsonOptionsArg})"
+                    : "System.Text.Json.JsonSerializer.Serialize(item)";
+                handlerLines.Add($"                await httpResponse.WriteAsync({serializeExpr}, cancellationToken);");
                 handlerLines.Add("                await httpResponse.WriteAsync(\"\\n\", cancellationToken);");
                 handlerLines.Add("                await httpResponse.Body.FlushAsync(cancellationToken);");
                 handlerLines.Add("            }");
@@ -770,30 +779,42 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
                     if (endpoint.IsResponseNullable)
                     {
+                        var okResult = jsonOptionsArg != null
+                            ? $"Microsoft.AspNetCore.Http.Results.Json(result, {jsonOptionsArg})"
+                            : "Microsoft.AspNetCore.Http.Results.Ok(result)";
                         handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator) =>");
                         handlerLines.Add("        {");
                         handlerLines.Add($"            var result = await mediator.Send({requestCreation});");
-                        handlerLines.Add("            return result is not null ? Microsoft.AspNetCore.Http.Results.Ok(result) : Microsoft.AspNetCore.Http.Results.NotFound();");
+                        handlerLines.Add($"            return result is not null ? {okResult} : Microsoft.AspNetCore.Http.Results.NotFound();");
                         lastHandlerLine = "        })";
                     }
                     else
                     {
+                        var returnExpr = jsonOptionsArg != null
+                            ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send({requestCreation}), {jsonOptionsArg})"
+                            : $"await mediator.Send({requestCreation})";
                         handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
-                        lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+                        lastHandlerLine = $"            => {returnExpr})";
                     }
                 }
                 else if (endpoint.IsResponseNullable)
                 {
+                    var okResult = jsonOptionsArg != null
+                        ? $"Microsoft.AspNetCore.Http.Results.Json(result, {jsonOptionsArg})"
+                        : "Microsoft.AspNetCore.Http.Results.Ok(result)";
                     handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async (IMediator mediator) =>");
                     handlerLines.Add("        {");
                     handlerLines.Add($"            var result = await mediator.Send(new {endpoint.RequestTypeName}());");
-                    handlerLines.Add("            return result is not null ? Microsoft.AspNetCore.Http.Results.Ok(result) : Microsoft.AspNetCore.Http.Results.NotFound();");
+                    handlerLines.Add($"            return result is not null ? {okResult} : Microsoft.AspNetCore.Http.Results.NotFound();");
                     lastHandlerLine = "        })";
                 }
                 else
                 {
+                    var returnExpr = jsonOptionsArg != null
+                        ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send(new {endpoint.RequestTypeName}()), {jsonOptionsArg})"
+                        : $"await mediator.Send(new {endpoint.RequestTypeName}())";
                     handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async (IMediator mediator)");
-                    lastHandlerLine = $"            => await mediator.Send(new {endpoint.RequestTypeName}()))";
+                    lastHandlerLine = $"            => {returnExpr})";
                 }
             }
             else if (endpoint.HttpVerb == "DELETE" && endpoint.Parameters.Any())
@@ -802,19 +823,27 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var requestCreation = endpoint.Parameters.Count == 1
                     ? $"new {endpoint.RequestTypeName}({endpoint.Parameters[0].Name})"
                     : $"new {endpoint.RequestTypeName}({string.Join(", ", endpoint.Parameters.Select(p => p.Name))})";
-
+                var returnExpr = jsonOptionsArg != null
+                    ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send({requestCreation}), {jsonOptionsArg})"
+                    : $"await mediator.Send({requestCreation})";
                 handlerLines.Add($"        {routeBuilderExpression}.MapDelete(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
-                lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+                lastHandlerLine = $"            => {returnExpr})";
             }
             else if (endpoint.HttpVerb == "PUT")
             {
+                var returnExpr = jsonOptionsArg != null
+                    ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send(request), {jsonOptionsArg})"
+                    : "await mediator.Send(request)";
                 handlerLines.Add($"        {routeBuilderExpression}.MapPut(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
-                lastHandlerLine = "            => await mediator.Send(request))";
+                lastHandlerLine = $"            => {returnExpr})";
             }
             else
             {
+                var returnExpr = jsonOptionsArg != null
+                    ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send(request), {jsonOptionsArg})"
+                    : "await mediator.Send(request)";
                 handlerLines.Add($"        {routeBuilderExpression}.MapPost(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
-                lastHandlerLine = "            => await mediator.Send(request))";
+                lastHandlerLine = $"            => {returnExpr})";
             }
 
             var endpointChain = new List<string>();
@@ -866,7 +895,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
         }
     }
 
-    
+
 
 
 }

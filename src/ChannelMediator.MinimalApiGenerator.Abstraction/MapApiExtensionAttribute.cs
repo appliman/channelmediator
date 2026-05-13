@@ -44,4 +44,15 @@ public class MapApiExtensionAttribute : Attribute
 	/// Use the simple assembly name (e.g. <c>"ChannelMediatorApiContractsSample"</c>).
 	/// </remarks>
 	public string[]? ScanAssemblies { get; set; }
+
+	/// <summary>
+	/// Gets or sets the JSON serializer options preset used when serializing responses
+	/// in generated stream endpoints.
+	/// Defaults to <see cref="JsonSerializerOptionsPreset.Web"/>.
+	/// </summary>
+	/// <remarks>
+	/// Set the same value on <see cref="ApiClientAttribute.JsonOptions"/> so that
+	/// the client and the server use identical serialization behaviour (e.g. enum representation).
+	/// </remarks>
+	public JsonSerializerOptionsPreset JsonOptions { get; set; } = JsonSerializerOptionsPreset.Web;
 }

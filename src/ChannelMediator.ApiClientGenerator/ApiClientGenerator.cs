@@ -32,12 +32,14 @@ public class ApiClientGenerator : IIncrementalGenerator
 		if (contractsType is null) return null;
 
 		var httpClientName = GetNamedArgValue<string>(attributeData, "HttpClientName") ?? "ApiClient";
+		var jsonOptions = GetNamedArgValue<int>(attributeData, "JsonOptions");
 
 		return new ApiClientInfo
 		{
 			ContractsAssembly = contractsType.ContainingAssembly,
 			OutputNamespace = compilation.Assembly.Name,
-			HttpClientName = httpClientName
+			HttpClientName = httpClientName,
+			JsonOptions = jsonOptions
 		};
 	}
 
@@ -186,6 +188,9 @@ public class ClientApiException : Exception
 ";
 	}
 
+	private static string? GetJsonOptionsExpression(int jsonOptions) =>
+		jsonOptions == 0 ? "System.Text.Json.JsonSerializerOptions.Web" : null;
+
 	private static string GenerateHandler(ApiClientInfo client, EndpointInfo ep, string handlerName)
 	{
 		var sb = new StringBuilder();
@@ -222,19 +227,21 @@ public class ClientApiException : Exception
 		sb.AppendLine("    {");
 		sb.AppendLine($"        var httpClient = _httpClientFactory.CreateClient(\"{client.HttpClientName}\");");
 
+		var jsonOptionsExpr = GetJsonOptionsExpression(client.JsonOptions);
+
 		switch (ep.HttpVerb)
 		{
 			case "GET":
-				EmitGetBody(sb, ep, route, cleanResponse);
+				EmitGetBody(sb, ep, route, cleanResponse, jsonOptionsExpr);
 				break;
 			case "DELETE":
-				EmitDeleteBody(sb, ep, route, cleanResponse);
+				EmitDeleteBody(sb, ep, route, cleanResponse, jsonOptionsExpr);
 				break;
 			case "PUT":
-				EmitPutBody(sb, ep, route, cleanResponse);
+				EmitPutBody(sb, ep, route, cleanResponse, jsonOptionsExpr);
 				break;
 			default: // POST
-				EmitPostBody(sb, ep, route, cleanResponse);
+				EmitPostBody(sb, ep, route, cleanResponse, jsonOptionsExpr);
 				break;
 		}
 
@@ -245,6 +252,8 @@ public class ClientApiException : Exception
 
 	private static void EmitStreamHandler(StringBuilder sb, ApiClientInfo client, EndpointInfo ep, string handlerName, string route, string cleanResponse)
 	{
+		var jsonOptionsExpr = GetJsonOptionsExpression(client.JsonOptions);
+
 		sb.AppendLine("using System.Collections.Generic;");
 		sb.AppendLine("using System.IO;");
 		sb.AppendLine("using System.Net.Http;");
@@ -285,7 +294,10 @@ public class ClientApiException : Exception
 		sb.AppendLine("            {");
 		sb.AppendLine("                continue;");
 		sb.AppendLine("            }");
-		sb.AppendLine($"            var item = System.Text.Json.JsonSerializer.Deserialize<{cleanResponse}>(line, System.Text.Json.JsonSerializerOptions.Web);");
+		var deserializeExpr = jsonOptionsExpr != null
+			? $"System.Text.Json.JsonSerializer.Deserialize<{cleanResponse}>(line, {jsonOptionsExpr})"
+			: $"System.Text.Json.JsonSerializer.Deserialize<{cleanResponse}>(line)";
+		sb.AppendLine($"            var item = {deserializeExpr};");
 		sb.AppendLine("            if (item is not null)");
 		sb.AppendLine("            {");
 		sb.AppendLine("                yield return item;");
@@ -308,15 +320,18 @@ public class ClientApiException : Exception
 		return "request." + char.ToUpperInvariant(paramName[0]) + paramName.Substring(1);
 	}
 
-	private static void EmitGetBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse)
+	private static void EmitGetBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse, string? jsonOptionsExpr)
 	{
 		var qs = BuildQueryString(ep);
 		sb.AppendLine($"        var url = $\"{{httpClient.BaseAddress}}{route}{qs}\";");
-		sb.AppendLine($"        var result = await httpClient.GetFromJsonAsync<{cleanResponse}>(url, System.Text.Json.JsonSerializerOptions.Web, cancellationToken);");
+		var getFromJsonArgs = jsonOptionsExpr != null
+			? $"url, {jsonOptionsExpr}, cancellationToken"
+			: "url, cancellationToken";
+		sb.AppendLine($"        var result = await httpClient.GetFromJsonAsync<{cleanResponse}>({getFromJsonArgs});");
 		sb.AppendLine($"        return result!;");
 	}
 
-	private static void EmitDeleteBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse)
+	private static void EmitDeleteBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse, string? jsonOptionsExpr)
 	{
 		var qs = BuildQueryString(ep);
 		sb.AppendLine($"        var url = $\"{{httpClient.BaseAddress}}{route}{qs}\";");
@@ -326,31 +341,46 @@ public class ClientApiException : Exception
 		sb.AppendLine("        {");
 		sb.AppendLine($"            throw new ClientApiException($\"Error calling api {route}{qs}\", response);");
 		sb.AppendLine("        }");
-		sb.AppendLine($"        var result = await response.Content.ReadFromJsonAsync<{cleanResponse}>(System.Text.Json.JsonSerializerOptions.Web, cancellationToken);");
+		var readFromJsonArgs = jsonOptionsExpr != null
+			? $"{jsonOptionsExpr}, cancellationToken"
+			: "cancellationToken";
+		sb.AppendLine($"        var result = await response.Content.ReadFromJsonAsync<{cleanResponse}>({readFromJsonArgs});");
 		sb.AppendLine($"        return result!;");
 	}
 
-	private static void EmitPutBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse)
+	private static void EmitPutBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse, string? jsonOptionsExpr)
 	{
 		sb.AppendLine($"        var url = $\"{{httpClient.BaseAddress}}{route}\";");
-		sb.AppendLine($"        var response = await httpClient.PutAsJsonAsync(url, request, System.Text.Json.JsonSerializerOptions.Web, cancellationToken);");
+		var putArgs = jsonOptionsExpr != null
+			? $"url, request, {jsonOptionsExpr}, cancellationToken"
+			: "url, request, cancellationToken";
+		sb.AppendLine($"        var response = await httpClient.PutAsJsonAsync({putArgs});");
 		sb.AppendLine($"        if (!response.IsSuccessStatusCode)");
 		sb.AppendLine("        {");
 		sb.AppendLine($"            throw new ClientApiException($\"Error calling api {route}\", response);");
 		sb.AppendLine("        }");
-		sb.AppendLine($"        var result = await response.Content.ReadFromJsonAsync<{cleanResponse}>(System.Text.Json.JsonSerializerOptions.Web, cancellationToken);");
+		var readFromJsonArgs = jsonOptionsExpr != null
+			? $"{jsonOptionsExpr}, cancellationToken"
+			: "cancellationToken";
+		sb.AppendLine($"        var result = await response.Content.ReadFromJsonAsync<{cleanResponse}>({readFromJsonArgs});");
 		sb.AppendLine($"        return result!;");
 	}
 
-	private static void EmitPostBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse)
+	private static void EmitPostBody(StringBuilder sb, EndpointInfo ep, string route, string cleanResponse, string? jsonOptionsExpr)
 	{
 		sb.AppendLine($"        var url = $\"{{httpClient.BaseAddress}}{route}\";");
-		sb.AppendLine($"        var response = await httpClient.PostAsJsonAsync(url, request, System.Text.Json.JsonSerializerOptions.Web, cancellationToken);");
+		var postArgs = jsonOptionsExpr != null
+			? $"url, request, {jsonOptionsExpr}, cancellationToken"
+			: "url, request, cancellationToken";
+		sb.AppendLine($"        var response = await httpClient.PostAsJsonAsync({postArgs});");
 		sb.AppendLine($"        if (!response.IsSuccessStatusCode)");
 		sb.AppendLine("        {");
 		sb.AppendLine($"            throw new ClientApiException($\"Error calling api {route}\", response);");
 		sb.AppendLine("        }");
-		sb.AppendLine($"        var result = await response.Content.ReadFromJsonAsync<{cleanResponse}>(System.Text.Json.JsonSerializerOptions.Web, cancellationToken);");
+		var readFromJsonArgs = jsonOptionsExpr != null
+			? $"{jsonOptionsExpr}, cancellationToken"
+			: "cancellationToken";
+		sb.AppendLine($"        var result = await response.Content.ReadFromJsonAsync<{cleanResponse}>({readFromJsonArgs});");
 		sb.AppendLine($"        return result!;");
 	}
 
@@ -423,6 +453,8 @@ public class ClientApiException : Exception
 		public IAssemblySymbol ContractsAssembly { get; set; } = null!;
 		public string OutputNamespace { get; set; } = null!;
 		public string HttpClientName { get; set; } = "ApiClient";
+		/// <summary>0 = Web, 1 = Default (mirrors JsonSerializerOptionsPreset)</summary>
+		public int JsonOptions { get; set; }
 	}
 
 	private class EndpointInfo
