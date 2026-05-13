@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator.MinimalApiGenerator.Abstraction;
+﻿namespace ChannelMediator.ApiGenerators.Abstraction;
 
 /// <summary>
 /// Marks a <see langword="static partial"/> class as the target for the ChannelMediator

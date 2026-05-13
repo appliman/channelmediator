@@ -9,7 +9,9 @@
   </Folder>
   <Folder Name="/3-Api/">
     <Project Path="src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj" Id="070ffeae-1518-4c3e-b11b-5ecd853ac7b8" />
-    <Project Path="src/ChannelMediator.MinimalApiGenerator.Abstraction/ChannelMediator.MinimalApiGenerator.Abstraction.csproj" />
+    <Project Path="src/ChannelMediator.GrpcClientGenerator/ChannelMediator.GrpcClientGenerator.csproj" />
+    <Project Path="src/ChannelMediator.GrpcGenerator/ChannelMediator.GrpcGenerator.csproj" />
+    <Project Path="src/ChannelMediator.ApiGenerators.Abstraction/ChannelMediator.ApiGenerators.Abstraction.csproj" />
     <Project Path="src/ChannelMediator.MinimalApiGenerator/ChannelMediator.MinimalApiGenerator.csproj" />
   </Folder>
   <Folder Name="/4-Samples/">
@@ -21,6 +23,8 @@
     <Project Path="src/ChannelMediatorApiContractsSample/ChannelMediatorApiContractsSample.csproj" Id="2abe28c0-ae7d-467e-9cce-4adb59da5cbf" />
     <Project Path="src/Samples/ChannelMediatorApiClientSample/ChannelMediatorApiClientSample.csproj" Id="440729f2-cdd2-4789-807d-abc47a0ba63e" />
     <Project Path="src/Samples/ChannelMediatorMinimalApiSample/ChannelMediatorMinimalApiSample.csproj" />
+    <Project Path="src/Samples/ChannelMediatorGrpcSample/ChannelMediatorGrpcSample.csproj" />
+    <Project Path="src/Samples/ChannelMediatorGrpcClientSample/ChannelMediatorGrpcClientSample.csproj" />
   </Folder>
   <Folder Name="/4-Samples/EventDriven/">
     <Project Path="src/Samples/AzureBusReaderSampleConsole/AzureBusReaderSampleConsole.csproj" />

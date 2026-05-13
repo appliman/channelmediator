@@ -16,7 +16,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\ChannelMediator.MinimalApiGenerator.Abstraction\ChannelMediator.MinimalApiGenerator.Abstraction.csproj" />
+	  <ProjectReference Include="..\..\ChannelMediator.ApiGenerators.Abstraction\ChannelMediator.ApiGenerators.Abstraction.csproj" />
 	  <ProjectReference Include="..\..\ChannelMediator.MinimalApiGenerator\ChannelMediator.MinimalApiGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	  <ProjectReference Include="..\..\ChannelMediatorApiContractsSample\ChannelMediatorApiContractsSample.csproj" />
 	  <ProjectReference Include="..\..\ChannelMediator\ChannelMediator.csproj" />
