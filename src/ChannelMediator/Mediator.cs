@@ -78,7 +78,7 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		if (!_notificationHandlers.TryGetValue(notification.GetType(), out var wrapper))
 		{
-			_logger.LogWarning("No notification handler wrapper registered for type {NotificationType}. Ensure the assembly containing the INotificationHandler<{NotificationType}> implementation is passed to AddChannelMediator().",
+			_logger.LogTrace("No notification handler wrapper registered for type {NotificationType}. Ensure the assembly containing the INotificationHandler<{NotificationType}> implementation is passed to AddChannelMediator().",
 				notification.GetType().FullName, notification.GetType().Name);
 			return;
 		}
@@ -211,4 +211,3 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		_cts.Dispose();
 	}
 }
-
