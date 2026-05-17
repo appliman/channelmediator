@@ -1,4 +1,5 @@
-﻿using ChannelMediator.Tests.Helpers;
+using ChannelMediator.Tests.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace ChannelMediator.Tests;
 
@@ -220,6 +221,40 @@ public class ChannelMediatorTests
     }
 
     [Fact]
+    public async Task Publish_WithUnregisteredNotification_LogsTrace()
+    {
+        // Arrange
+        var loggerProvider = new InMemoryLoggerProvider();
+        var services = new ServiceCollection();
+        services.AddLogging(builder =>
+        {
+            builder.ClearProviders();
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddProvider(loggerProvider);
+        });
+        services.AddChannelMediator();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Publish(new UnhandledNotification("unregistered"));
+
+        // Assert
+        Assert.Contains(
+            loggerProvider.Entries,
+            entry => entry.Category == typeof(Mediator).FullName
+                && entry.Level == LogLevel.Trace
+                && entry.Message.Contains("No notification handler wrapper registered for type", StringComparison.Ordinal));
+
+        Assert.DoesNotContain(
+            loggerProvider.Entries,
+            entry => entry.Category == typeof(Mediator).FullName
+                && entry.Level == LogLevel.Warning
+                && entry.Message.Contains("No notification handler wrapper registered for type", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task DisposeAsync_DisposesMediator_StopsProcessingRequests()
     {
         // Arrange
@@ -297,4 +332,40 @@ public class ChannelMediatorTests
         // Cleanup
         await mediator.DisposeAsync();
     }
+
+    private sealed class InMemoryLoggerProvider : ILoggerProvider
+    {
+        public List<LogEntry> Entries { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => new InMemoryLogger(categoryName, Entries);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class InMemoryLogger(string categoryName, List<LogEntry> entries) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+        {
+            return null;
+        }
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            entries.Add(new LogEntry(categoryName, logLevel, formatter(state, exception)));
+        }
+    }
+
+    private sealed record LogEntry(string Category, LogLevel Level, string Message);
+
+    private sealed record UnhandledNotification(string Message) : INotification;
 }
