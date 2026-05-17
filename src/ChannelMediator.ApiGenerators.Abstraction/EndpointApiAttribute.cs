@@ -1,0 +1,96 @@
+﻿namespace ChannelMediator.ApiGenerators.Abstraction;
+
+/// <summary>
+/// Marks an <c>IRequest</c> or <c>IRequest&lt;TResponse&gt;</c> class as a Minimal API endpoint
+/// to be auto-registered by the ChannelMediator source generator.
+/// </summary>
+/// <remarks>
+/// Place this attribute on a request class (or record) to instruct the generator to emit a
+/// <c>Map{Verb}</c> call for that request inside the appropriate route group.
+/// The generated extension method is defined in the partial class decorated with
+/// <see cref="MapApiExtensionAttribute"/>.
+/// </remarks>
+/// <example>
+/// <code>
+/// [EndpointApi(
+///     GroupName = "Catalog",
+///     Path = "products",
+///     Summary = "Get a product by ID",
+///     UseHttpStandardVerbs = true)]
+/// public record GetProductRequest(int Id) : IRequest&lt;Product?&gt;;
+/// </code>
+/// </example>
+[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+public class EndpointApiAttribute : Attribute
+{
+	/// <summary>
+	/// Gets or sets the name of the route group this endpoint belongs to.
+	/// The group is mapped to <c>/api/{groupName}</c> (lower-cased).
+	/// </summary>
+	/// <example><c>GroupName = "Catalog"</c> → route prefix <c>/api/catalog</c></example>
+	public string GroupName { get; set; } = null!;
+
+	/// <summary>
+	/// Gets or sets the path segment appended to the group prefix.
+	/// When not set, it is auto-derived from the request type name in kebab-case,
+	/// with the <c>Request</c> suffix and any leading <c>Get</c> prefix removed.
+	/// </summary>
+	/// <example>
+	/// <c>Path = "products"</c> → full route <c>/api/catalog/products</c>;
+	/// <c>GetProductById</c> (no explicit path) → <c>/api/catalog/product-by-id</c>
+	/// </example>
+	public string Path { get; set; } = null!;
+
+	/// <summary>
+	/// Gets or sets the OpenAPI tags applied to this endpoint via <c>.WithTags(...)</c>.
+	/// Tags are used for grouping endpoints in the Swagger UI.
+	/// </summary>
+	public string[] Tags { get; set; } = Array.Empty<string>();
+
+	/// <summary>
+	/// Gets or sets the short summary for this endpoint, emitted via <c>.WithSummary(...)</c>.
+	/// Displayed as the endpoint title in Swagger UI.
+	/// </summary>
+	public string? Summary { get; set; }
+
+	/// <summary>
+	/// Gets or sets the detailed description for this endpoint, emitted via <c>.WithDescription(...)</c>.
+	/// Supports Markdown in Swagger UI.
+	/// </summary>
+	public string? Description { get; set; }
+
+	/// <summary>
+	/// Gets or sets the authentication schemes required by this endpoint.
+	/// When non-empty, the generator emits
+	/// <c>.RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = ... })</c>.
+	/// </summary>
+	/// <example><c>AuthenticationSchemes = new[] { "Bearer" }</c></example>
+	public string[] AuthenticationSchemes { get; set; } = Array.Empty<string>();
+
+	/// <summary>
+	/// Gets or sets a value indicating whether the HTTP verb is inferred from the request type name
+	/// using standard naming conventions.
+	/// </summary>
+	/// <remarks>
+	/// When <see langword="true"/>, the generator maps the verb as follows:
+	/// <list type="table">
+	///   <listheader><term>Prefix</term><description>HTTP verb</description></listheader>
+	///   <item><term><c>Get*</c></term><description>GET</description></item>
+	///   <item><term><c>Delete*</c></term><description>DELETE</description></item>
+	///   <item><term><c>Put*</c> / <c>Update*</c></term><description>PUT</description></item>
+	///   <item><term><c>Post*</c> / <c>Create*</c> / <c>Save*</c></term><description>POST</description></item>
+	/// </list>
+	/// When <see langword="false"/> (default), all endpoints are mapped as POST.
+	/// </remarks>
+	public bool UseHttpStandardVerbs { get; set; } = false;
+
+	/// <summary>
+	/// Gets or sets the transport protocol(s) on which this endpoint is exposed.
+	/// </summary>
+	/// <remarks>
+	/// Defaults to <see cref="EndpointProtocol.Http"/> so that existing decorations are unaffected.
+	/// Set to <see cref="EndpointProtocol.Grpc"/> to expose only via gRPC, or
+	/// <see cref="EndpointProtocol.Both"/> to generate both HTTP and gRPC code for this request.
+	/// </remarks>
+	public EndpointProtocol Protocol { get; set; } = EndpointProtocol.Http;
+}

@@ -12,7 +12,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  buildConfiguration: 'Debug'
+  buildConfiguration: 'Release'
   dotnetVersion: '10.x'
 
 stages:
@@ -112,6 +112,30 @@ stages:
             inputs:
               command: 'pack'
               packagesToPack: 'src/ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj'
+              configuration: '$(buildConfiguration)'
+              outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Pack ChannelMediator.MinimalApiGenerator.Abstraction'
+            inputs:
+              command: 'pack'
+              packagesToPack: 'src/ChannelMediator.MinimalApiGenerator.Abstraction/ChannelMediator.MinimalApiGenerator.Abstraction.csproj'
+              configuration: '$(buildConfiguration)'
+              outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Pack ChannelMediator.MinimalApiGenerator'
+            inputs:
+              command: 'pack'
+              packagesToPack: 'src/ChannelMediator.MinimalApiGenerator/ChannelMediator.MinimalApiGenerator.csproj'
+              configuration: '$(buildConfiguration)'
+              outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Pack ChannelMediator.ApiClientGenerator'
+            inputs:
+              command: 'pack'
+              packagesToPack: 'src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj'
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 

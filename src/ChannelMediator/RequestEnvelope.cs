@@ -13,7 +13,7 @@ internal sealed class RequestEnvelope<TResponse> : IRequestEnvelope
 		_callerToken = callerToken;
 	}
 
-	public async ValueTask DispatchAsync(IReadOnlyDictionary<Type, IRequestHandlerWrapper> handlers, CancellationToken dispatcherToken)
+	public async ValueTask DispatchAsync(FrozenDictionary<Type, IRequestHandlerWrapper> handlers, CancellationToken dispatcherToken)
 	{
 		if (!handlers.TryGetValue(_request.GetType(), out var handler))
 		{
@@ -30,7 +30,7 @@ internal sealed class RequestEnvelope<TResponse> : IRequestEnvelope
 		try
 		{
 			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(dispatcherToken, _callerToken);
-			var response = await handler.HandleAsync(_request, linkedCts.Token).ConfigureAwait(false);
+			var response = await handler.HandleAsync(_request, linkedCts.Token);
 			_completionSource.TrySetResult((TResponse)response);
 		}
 		catch (OperationCanceledException exception)

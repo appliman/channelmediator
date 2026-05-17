@@ -44,4 +44,10 @@ public sealed class QueueReaderOptions
     /// Default is 5 minutes.
     /// </summary>
     public TimeSpan MaxAutoLockRenewalDuration { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Gets or sets the number of messages to prefetch from the queue.
+    /// A higher value can improve throughput by reducing round-trips. Default is 0 (SDK default).
+    /// </summary>
+    public int PrefetchCount { get; set; }
 }

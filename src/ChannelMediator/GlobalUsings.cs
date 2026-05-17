@@ -1,4 +1,5 @@
 ﻿global using System;
+global using System.Collections.Frozen;
 global using System.Collections.Generic;
 global using System.Linq;
 global using System.Runtime.CompilerServices;
@@ -8,5 +9,5 @@ global using System.Threading.Channels;
 global using System.Threading.Tasks;
 
 global using Microsoft.Extensions.DependencyInjection;
-
-[assembly: InternalsVisibleTo("ChannelMediator.Tests")]
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Abstractions;

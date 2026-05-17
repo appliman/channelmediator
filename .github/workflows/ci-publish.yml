@@ -1,0 +1,168 @@
+﻿name: Build, Test & Publish to NuGet
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION_FILE: ChannelMediator.slnx
+
+permissions:
+  contents: read
+
+jobs:
+
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test src/ChannelMediator.Tests/ChannelMediator.Tests.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results/*.trx
+          retention-days: 7
+
+  publish:
+    name: Pack & Publish to NuGet
+    runs-on: ubuntu-latest
+    needs: build-test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build Release
+        run: dotnet build ${{ env.SOLUTION_FILE }} --no-restore --configuration Release
+
+      - name: Pack ChannelMediator.Contracts
+        run: >
+          dotnet pack src/ChannelMediator.Contracts/ChannelMediator.Contracts.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator
+        run: >
+          dotnet pack src/ChannelMediator/ChannelMediator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.AzureBus
+        run: >
+          dotnet pack src/ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.RabbitMQ
+        run: >
+          dotnet pack src/ChannelMediator.RabbitMQ/ChannelMediator.RabbitMQ.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.ApiGenerators.Abstraction
+        run: >
+          dotnet pack src/ChannelMediator.ApiGenerators.Abstraction/ChannelMediator.ApiGenerators.Abstraction.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.MinimalApiGenerator
+        run: >
+          dotnet pack src/ChannelMediator.MinimalApiGenerator/ChannelMediator.MinimalApiGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.ApiClientGenerator
+        run: >
+          dotnet pack src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.GrpcGenerator
+        run: >
+          dotnet pack src/ChannelMediator.GrpcGenerator/ChannelMediator.GrpcGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.GrpcClientGenerator
+        run: >
+          dotnet pack src/ChannelMediator.GrpcClientGenerator/ChannelMediator.GrpcClientGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs
+          path: ./nupkgs/*.nupkg
+          retention-days: 14
+
+      - name: Publish to NuGet.org
+        run: >
+          dotnet nuget push ./nupkgs/*.nupkg
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

@@ -1,4 +1,5 @@
-﻿using ChannelMediator.Tests.Helpers;
+using ChannelMediator.Tests.Helpers;
+using Microsoft.Extensions.Logging;
 
 namespace ChannelMediator.Tests;
 
@@ -19,8 +20,8 @@ public class ChannelMediatorTests
         var response = await mediator.Send(request);
 
         // Assert
-        response.Should().NotBeNull();
-        response.Result.Should().Be("Handled: test");
+        Assert.NotNull(response);
+        Assert.Equal("Handled: test", response.Result);
     }
 
     [Fact]
@@ -38,8 +39,8 @@ public class ChannelMediatorTests
         var response = await mediator.Send(request);
 
         // Assert
-        response.Should().NotBeNull();
-        response.Result.Should().Be("Handled: send-test");
+        Assert.NotNull(response);
+        Assert.Equal("Handled: send-test", response.Result);
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public class ChannelMediatorTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await mediator.Send(request));
-        exception.Message.Should().Contain("No handler registered");
+        Assert.Contains("No handler registered", exception.Message);
     }
 
     [Fact]
@@ -87,7 +88,7 @@ public class ChannelMediatorTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await mediator.Send(request));
-        exception.Message.Should().Be("Handler failed");
+        Assert.Equal("Handler failed", exception.Message);
     }
 
     [Fact]
@@ -130,10 +131,10 @@ public class ChannelMediatorTests
         await Task.Delay(50); // Give time for sequential processing
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler1.HandledMessages[0].Should().Be("Handler1: test message");
-        handler2.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages[0].Should().Be("Handler2: test message");
+        Assert.Single(handler1.HandledMessages);
+        Assert.Equal("Handler1: test message", handler1.HandledMessages[0]);
+        Assert.Single(handler2.HandledMessages);
+        Assert.Equal("Handler2: test message", handler2.HandledMessages[0]);
     }
 
     [Fact]
@@ -158,8 +159,8 @@ public class ChannelMediatorTests
         await Task.Delay(50); // Give time for sequential processing
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 
     [Fact]
@@ -186,8 +187,8 @@ public class ChannelMediatorTests
         await mediator.Publish(notification);
 
         // Assert
-        handler1.HandledMessages.Should().ContainSingle();
-        handler2.HandledMessages.Should().ContainSingle();
+        Assert.Single(handler1.HandledMessages);
+        Assert.Single(handler2.HandledMessages);
     }
 
     [Fact]
@@ -220,6 +221,40 @@ public class ChannelMediatorTests
     }
 
     [Fact]
+    public async Task Publish_WithUnregisteredNotification_LogsTrace()
+    {
+        // Arrange
+        var loggerProvider = new InMemoryLoggerProvider();
+        var services = new ServiceCollection();
+        services.AddLogging(builder =>
+        {
+            builder.ClearProviders();
+            builder.SetMinimumLevel(LogLevel.Trace);
+            builder.AddProvider(loggerProvider);
+        });
+        services.AddChannelMediator();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var mediator = serviceProvider.GetRequiredService<IMediator>();
+
+        // Act
+        await mediator.Publish(new UnhandledNotification("unregistered"));
+
+        // Assert
+        Assert.Contains(
+            loggerProvider.Entries,
+            entry => entry.Category == typeof(Mediator).FullName
+                && entry.Level == LogLevel.Trace
+                && entry.Message.Contains("No notification handler wrapper registered for type", StringComparison.Ordinal));
+
+        Assert.DoesNotContain(
+            loggerProvider.Entries,
+            entry => entry.Category == typeof(Mediator).FullName
+                && entry.Level == LogLevel.Warning
+                && entry.Message.Contains("No notification handler wrapper registered for type", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task DisposeAsync_DisposesMediator_StopsProcessingRequests()
     {
         // Arrange
@@ -236,7 +271,7 @@ public class ChannelMediatorTests
 
         // Assert - The mediator should be disposed
         // Attempting to use it may result in exceptions or undefined behavior
-        mediator.Should().NotBeNull();
+        Assert.NotNull(mediator);
     }
 
     [Fact]
@@ -259,10 +294,10 @@ public class ChannelMediatorTests
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        results.Should().HaveCount(10);
+        Assert.Equal(10, results.Length);
         for (int i = 0; i < 10; i++)
         {
-            results[i].Result.Should().Be($"Handled: test-{i}");
+            Assert.Equal($"Handled: test-{i}", results[i].Result);
         }
     }
 
@@ -280,21 +315,57 @@ public class ChannelMediatorTests
         var response2 = await mediator.Send(new AnotherTestRequest(5));
 
         // Assert
-        response1.Result.Should().Be("Handled: test");
-        response2.Should().Be(10);
+        Assert.Equal("Handled: test", response1.Result);
+        Assert.Equal(10, response2);
     }
 
     [Fact]
     public async Task Constructor_WithHandlersOnly_CreatesValidMediator()
     {
         // Arrange & Act
-        var handler = new RequestHandlerWrapper<TestRequest, TestResponse>(Mock.Of<IServiceProvider>());
+        var handler = new RequestHandlerWrapper<TestRequest, TestResponse>(new ServiceCollection().BuildServiceProvider());
         var mediator = new Mediator(new[] { handler });
 
         // Assert
-        mediator.Should().NotBeNull();
+        Assert.NotNull(mediator);
 
         // Cleanup
         await mediator.DisposeAsync();
     }
+
+    private sealed class InMemoryLoggerProvider : ILoggerProvider
+    {
+        public List<LogEntry> Entries { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => new InMemoryLogger(categoryName, Entries);
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class InMemoryLogger(string categoryName, List<LogEntry> entries) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+        {
+            return null;
+        }
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            entries.Add(new LogEntry(categoryName, logLevel, formatter(state, exception)));
+        }
+    }
+
+    private sealed record LogEntry(string Category, LogLevel Level, string Message);
+
+    private sealed record UnhandledNotification(string Message) : INotification;
 }

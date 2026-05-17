@@ -70,45 +70,6 @@ public class MediatorTests
 	}
 
 	[Fact]
-	public async Task Send_WithCommandAsObject_ExecutesViaCreateCommandInvoker()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		services.AddChannelMediator(null, typeof(TestCommandHandler).Assembly);
-		var serviceProvider = services.BuildServiceProvider();
-		var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-		object command = new TestCommand("object-command-test");
-
-		// Act
-		var result = await mediator.Send(command);
-
-		// Assert
-		result.Should().BeNull(); // Commands return null
-		TestCommandHandler.LastExecutedValue.Should().Be("object-command-test");
-	}
-
-	[Fact]
-	public async Task Send_WithRequestAsObject_ExecutesViaCreateRequestInvoker()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		services.AddChannelMediator(null, typeof(TestRequestHandler).Assembly);
-		var serviceProvider = services.BuildServiceProvider();
-		var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-		object request = new TestRequest("object-request-test");
-
-		// Act
-		var result = await mediator.Send(request);
-
-		// Assert
-		result.Should().NotBeNull();
-		result.Should().BeOfType<TestResponse>();
-		((TestResponse)result!).Result.Should().Be("Handled: object-request-test");
-	}
-
-	[Fact]
 	public async Task ServiceProvider_CanDisposeMediator_Synchronously()
 	{
 		// Arrange
@@ -122,12 +83,12 @@ public class MediatorTests
 			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 			var request = new TestRequest("dispose-test");
 			var response = await mediator.Send(request);
-			response.Result.Should().Be("Handled: dispose-test");
+			Assert.Equal("Handled: dispose-test", response.Result);
 		}
 		// Scope.Dispose() is called here - should not throw
 
 		// Assert - We got here without exception
-		true.Should().BeTrue();
+		Assert.True(true);
 	}
 
 	[Fact]
@@ -144,12 +105,12 @@ public class MediatorTests
 			var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 			var request = new TestRequest("async-dispose-test");
 			var response = await mediator.Send(request);
-			response.Result.Should().Be("Handled: async-dispose-test");
+			Assert.Equal("Handled: async-dispose-test", response.Result);
 		}
 		// Scope.DisposeAsync() is called here - should not throw
 
 		// Assert - We got here without exception
-		true.Should().BeTrue();
+		Assert.True(true);
 	}
 
 	[Fact]
@@ -165,7 +126,7 @@ public class MediatorTests
 		var mediator = new Mediator(wrappers);
 
 		// Assert
-		mediator.Should().NotBeNull();
+		Assert.NotNull(mediator);
 	}
 
 	[Fact]
@@ -173,7 +134,7 @@ public class MediatorTests
 	{
 		// Act & Assert
 		Assert.Throws<ArgumentNullException>(() =>
-			new Mediator((IReadOnlyDictionary<Type, IRequestHandlerWrapper>)null!));
+			new Mediator((FrozenDictionary<Type, IRequestHandlerWrapper>)null!));
 	}
 
 	[Fact]
@@ -195,6 +156,6 @@ public class MediatorTests
 		mediator.Dispose();
 
 		// Assert - Should complete without hanging
-		true.Should().BeTrue();
+		Assert.True(true);
 	}
 }

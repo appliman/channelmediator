@@ -19,23 +19,23 @@ public class RequestHandlerWrapperTests
         var response = await wrapper.HandleAsync(request, CancellationToken.None);
 
         // Assert
-        response.Should().NotBeNull();
-        response.Should().BeOfType<TestResponse>();
-        ((TestResponse)response).Result.Should().Be("Handled: test");
+        Assert.NotNull(response);
+        Assert.IsType<TestResponse>(response);
+        Assert.Equal("Handled: test", ((TestResponse)response).Result);
     }
 
     [Fact]
     public void RequestType_ReturnsCorrectType()
     {
         // Arrange
-        var serviceProvider = Mock.Of<IServiceProvider>();
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
         var wrapper = new RequestHandlerWrapper<TestRequest, TestResponse>(serviceProvider);
 
         // Act
         var requestType = wrapper.RequestType;
 
         // Assert
-        requestType.Should().Be(typeof(TestRequest));
+        Assert.Equal(typeof(TestRequest), requestType);
     }
 
     [Fact]
@@ -55,8 +55,8 @@ public class RequestHandlerWrapperTests
         await wrapper.HandleAsync(request, CancellationToken.None);
 
         // Assert
-        loggingBehavior.Logs.Should().Contain("Before: TestRequest");
-        loggingBehavior.Logs.Should().Contain("After: TestRequest");
+        Assert.Contains("Before: TestRequest", loggingBehavior.Logs);
+        Assert.Contains("After: TestRequest", loggingBehavior.Logs);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class RequestHandlerWrapperTests
         await wrapper.HandleAsync(request, CancellationToken.None);
 
         // Assert - Behaviors execute in reverse order (last registered, first executed)
-        behavior1.Logs.Should().HaveCount(2);
+        Assert.Equal(2, behavior1.Logs.Count);
     }
 
     [Fact]
@@ -116,6 +116,6 @@ public class RequestHandlerWrapperTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await wrapper.HandleAsync(request, CancellationToken.None));
-        exception.Message.Should().Be("Handler failed");
+        Assert.Equal("Handler failed", exception.Message);
     }
 }

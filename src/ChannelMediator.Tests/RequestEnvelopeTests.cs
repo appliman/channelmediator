@@ -1,5 +1,4 @@
 ﻿using ChannelMediator.Tests.Helpers;
-using System.Collections.Generic;
 
 namespace ChannelMediator.Tests;
 
@@ -17,7 +16,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -28,16 +27,16 @@ public class RequestEnvelopeTests
         var result = await completionSource.Task;
 
         // Assert
-        result.Should().NotBeNull();
-        result.Result.Should().Be("Handled: test");
-        completionSource.Task.IsCompletedSuccessfully.Should().BeTrue();
+        Assert.NotNull(result);
+        Assert.Equal("Handled: test", result.Result);
+        Assert.True(completionSource.Task.IsCompletedSuccessfully);
     }
 
     [Fact]
     public async Task DispatchAsync_WithMissingHandler_SetsException()
     {
         // Arrange
-        var handlers = new Dictionary<Type, IRequestHandlerWrapper>();
+        var handlers = FrozenDictionary<Type, IRequestHandlerWrapper>.Empty;
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         var envelope = new RequestEnvelope<TestResponse>(request, completionSource, CancellationToken.None);
@@ -46,9 +45,9 @@ public class RequestEnvelopeTests
         await envelope.DispatchAsync(handlers, CancellationToken.None);
 
         // Assert
-        completionSource.Task.IsFaulted.Should().BeTrue();
+        Assert.True(completionSource.Task.IsFaulted);
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await completionSource.Task);
-        exception.Message.Should().Contain("No handler registered");
+        Assert.Contains("No handler registered", exception.Message);
     }
 
     [Fact]
@@ -63,7 +62,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -75,7 +74,7 @@ public class RequestEnvelopeTests
         await envelope.DispatchAsync(handlers, CancellationToken.None);
 
         // Assert
-        completionSource.Task.IsCanceled.Should().BeTrue();
+        Assert.True(completionSource.Task.IsCanceled);
     }
 
     [Fact]
@@ -90,7 +89,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(FailingRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new FailingRequest();
         var completionSource = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -100,9 +99,9 @@ public class RequestEnvelopeTests
         await envelope.DispatchAsync(handlers, CancellationToken.None);
 
         // Assert
-        completionSource.Task.IsFaulted.Should().BeTrue();
+        Assert.True(completionSource.Task.IsFaulted);
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await completionSource.Task);
-        exception.Message.Should().Be("Handler failed");
+        Assert.Equal("Handler failed", exception.Message);
     }
 
     [Fact]
@@ -119,7 +118,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -132,7 +131,7 @@ public class RequestEnvelopeTests
         await envelope.DispatchAsync(handlers, dispatcherCts.Token);
 
         // Assert
-        completionSource.Task.IsCanceled.Should().BeTrue();
+        Assert.True(completionSource.Task.IsCanceled);
     }
 
     [Fact]
@@ -147,7 +146,7 @@ public class RequestEnvelopeTests
         var handlers = new Dictionary<Type, IRequestHandlerWrapper>
         {
             { typeof(TestRequest), wrapper }
-        };
+        }.ToFrozenDictionary();
 
         var request = new TestRequest("test");
         var completionSource = new TaskCompletionSource<TestResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -163,6 +162,7 @@ public class RequestEnvelopeTests
         await dispatchTask;
 
         // Assert - Should handle cancellation from either token
-        completionSource.Task.Status.Should().BeOneOf(TaskStatus.Canceled, TaskStatus.RanToCompletion);
+        Assert.True(
+            completionSource.Task.Status is TaskStatus.Canceled or TaskStatus.RanToCompletion);
     }
 }

@@ -24,14 +24,6 @@ public interface IMediator
 	Task Send(IRequest request, CancellationToken cancellationToken = default);
 
 	/// <summary>
-	/// Asynchronously send a request to a single handler.
-	/// </summary>
-	/// <param name="request">Request object</param>
-	/// <param name="cancellationToken">Optional cancellation token</param>
-	/// <returns>A task that represents the send operation. The task result contains the handler response.</returns>
-	Task<object?> Send(object request, CancellationToken cancellationToken = default);
-
-	/// <summary>
 	/// Asynchronously send a notification to multiple handlers.
 	/// </summary>
 	/// <typeparam name="TNotification">Notification type</typeparam>
@@ -41,11 +33,13 @@ public interface IMediator
 	Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default) where TNotification : INotification;
 
 	/// <summary>
-	/// Asynchronously send a notification to multiple handlers.
+	/// Creates an asynchronous stream for the given stream request.
+	/// The handler is dispatched directly (bypassing the channel pump).
 	/// </summary>
-	/// <param name="notification">Notification object</param>
-	/// <param name="cancellationToken">Optional cancellation token</param>
-	/// <returns>A task that represents the publish operation.</returns>
-	Task Publish(object notification, CancellationToken cancellationToken = default);
+	/// <typeparam name="TResponse">The type of each item yielded by the stream.</typeparam>
+	/// <param name="request">The stream request object.</param>
+	/// <param name="cancellationToken">Optional cancellation token.</param>
+	/// <returns>An asynchronous sequence of response items.</returns>
+	IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default);
 }
 

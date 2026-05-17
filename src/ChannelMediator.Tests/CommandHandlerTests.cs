@@ -20,7 +20,7 @@ public class CommandHandlerTests
 		await mediator.Send(command);
 
 		// Assert - Command should execute without throwing
-		TestCommandHandler.LastExecutedValue.Should().Be("test-value");
+		Assert.Equal("test-value", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -38,7 +38,7 @@ public class CommandHandlerTests
 		await mediator.Send(command);
 
 		// Assert
-		TestCommandHandler.LastExecutedValue.Should().Be("send-test");
+		Assert.Equal("send-test", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -69,7 +69,7 @@ public class CommandHandlerTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await mediator.Send(command));
-		exception.Message.Should().Be("Command handler failed");
+		Assert.Equal("Command handler failed", exception.Message);
 	}
 
 	[Fact]
@@ -113,9 +113,9 @@ public class CommandHandlerTests
 		await Task.Delay(50); // Give time for processing
 
 		// Assert
-		TestCommandHandler.ExecutedValues.Should().HaveCount(10);
-		TestCommandHandler.ExecutedValues.Should().Contain("cmd-0");
-		TestCommandHandler.ExecutedValues.Should().Contain("cmd-9");
+		Assert.Equal(10, TestCommandHandler.ExecutedValues.Count);
+		Assert.Contains("cmd-0", TestCommandHandler.ExecutedValues);
+		Assert.Contains("cmd-9", TestCommandHandler.ExecutedValues);
 	}
 
 	[Fact]
@@ -136,8 +136,8 @@ public class CommandHandlerTests
 		await Task.Delay(50);
 
 		// Assert
-		loggingBehavior.Logs.Should().Contain("Before: TestCommand");
-		loggingBehavior.Logs.Should().Contain("After: TestCommand");
+		Assert.Contains("Before: TestCommand", loggingBehavior.Logs);
+		Assert.Contains("After: TestCommand", loggingBehavior.Logs);
 	}
 
 	[Fact]
@@ -156,7 +156,7 @@ public class CommandHandlerTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
 			await mediator.Send(command));
-		exception.Message.Should().Contain("Value cannot be empty");
+		Assert.Contains("Value cannot be empty", exception.Message);
 	}
 
 	[Fact]
@@ -182,6 +182,6 @@ public class CommandHandlerTests
 		await Task.Delay(100);
 
 		// Assert
-		TestCommandHandler.ExecutedValues.Should().HaveCount(5);
+		Assert.Equal(5, TestCommandHandler.ExecutedValues.Count);
 	}
 }

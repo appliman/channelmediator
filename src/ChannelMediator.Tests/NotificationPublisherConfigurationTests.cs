@@ -9,7 +9,7 @@ public class NotificationPublisherConfigurationTests
         var config = new ChannelMediatorConfiguration();
 
         // Assert
-        config.Strategy.Should().Be(NotificationPublishStrategy.Sequential);
+        Assert.Equal(NotificationPublishStrategy.Sequential, config.Strategy);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class NotificationPublisherConfigurationTests
         config.Strategy = NotificationPublishStrategy.Parallel;
 
         // Assert
-        config.Strategy.Should().Be(NotificationPublishStrategy.Parallel);
+        Assert.Equal(NotificationPublishStrategy.Parallel, config.Strategy);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class NotificationPublisherConfigurationTests
         config.Strategy = NotificationPublishStrategy.Sequential;
 
         // Assert
-        config.Strategy.Should().Be(NotificationPublishStrategy.Sequential);
+        Assert.Equal(NotificationPublishStrategy.Sequential, config.Strategy);
     }
 }
 
@@ -48,13 +48,13 @@ public class NotificationPublishStrategyTests
     public void Sequential_HasCorrectValue()
     {
         // Assert
-        NotificationPublishStrategy.Sequential.Should().Be((NotificationPublishStrategy)0);
+        Assert.Equal((NotificationPublishStrategy)0, NotificationPublishStrategy.Sequential);
     }
 
     [Fact]
     public void Parallel_HasCorrectValue()
     {
         // Assert
-        NotificationPublishStrategy.Parallel.Should().Be((NotificationPublishStrategy)1);
+        Assert.Equal((NotificationPublishStrategy)1, NotificationPublishStrategy.Parallel);
     }
 }

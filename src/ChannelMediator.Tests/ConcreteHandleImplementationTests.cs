@@ -20,8 +20,8 @@ public class ConcreteHandleImplementationTests
 		var response = await handler.Handle(request, CancellationToken.None);
 
 		// Assert
-		response.Should().NotBeNull();
-		response.Result.Should().Be("Handled: concrete-test");
+		Assert.NotNull(response);
+		Assert.Equal("Handled: concrete-test", response.Result);
 	}
 
 	[Fact]
@@ -35,7 +35,7 @@ public class ConcreteHandleImplementationTests
 		var response = await handler.Handle(request, CancellationToken.None);
 
 		// Assert
-		response.Should().Be(100);
+		Assert.Equal(100, response);
 	}
 
 	[Fact]
@@ -50,8 +50,8 @@ public class ConcreteHandleImplementationTests
 		await handler.Handle(command, CancellationToken.None);
 
 		// Assert
-		TestCommandHandler.LastExecutedValue.Should().Be("concrete-command");
-		TestCommandHandler.ExecutedValues.Should().Contain("concrete-command");
+		Assert.Equal("concrete-command", TestCommandHandler.LastExecutedValue);
+		Assert.Contains("concrete-command", TestCommandHandler.ExecutedValues);
 	}
 
 	[Fact]
@@ -64,7 +64,7 @@ public class ConcreteHandleImplementationTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await handler.Handle(request, CancellationToken.None));
-		exception.Message.Should().Be("Handler failed");
+		Assert.Equal("Handler failed", exception.Message);
 	}
 
 	[Fact]
@@ -77,7 +77,7 @@ public class ConcreteHandleImplementationTests
 		// Act & Assert
 		var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
 			await handler.Handle(command, CancellationToken.None));
-		exception.Message.Should().Be("Command handler failed");
+		Assert.Equal("Command handler failed", exception.Message);
 	}
 
 	[Fact]
@@ -92,7 +92,7 @@ public class ConcreteHandleImplementationTests
 		var response = await handler.Handle(request, cts.Token);
 
 		// Assert
-		response.Should().NotBeNull();
+		Assert.NotNull(response);
 	}
 
 	[Fact]
@@ -108,7 +108,7 @@ public class ConcreteHandleImplementationTests
 		await handler.Handle(command, cts.Token);
 
 		// Assert
-		TestCommandHandler.LastExecutedValue.Should().Be("cancellation-test");
+		Assert.Equal("cancellation-test", TestCommandHandler.LastExecutedValue);
 	}
 
 	[Fact]
@@ -123,9 +123,9 @@ public class ConcreteHandleImplementationTests
 		var handleResponse = await handler.Handle(request, CancellationToken.None);
 
 		// Assert
-		asyncResponse.Should().BeEquivalentTo(handleResponse);
-		asyncResponse.Result.Should().Be("Handled: consistency-test");
-		handleResponse.Result.Should().Be("Handled: consistency-test");
+		Assert.Equal(asyncResponse.Result, handleResponse.Result);
+		Assert.Equal("Handled: consistency-test", asyncResponse.Result);
+		Assert.Equal("Handled: consistency-test", handleResponse.Result);
 	}
 
 	[Fact]
@@ -145,8 +145,8 @@ public class ConcreteHandleImplementationTests
 		var handleValue = TestCommandHandler.LastExecutedValue;
 
 		// Assert - Both should have executed their commands
-		asyncValue.Should().Be("async-cmd");
-		handleValue.Should().Be("handle-cmd");
+		Assert.Equal("async-cmd", asyncValue);
+		Assert.Equal("handle-cmd", handleValue);
 	}
 
 	[Fact]
@@ -164,8 +164,8 @@ public class ConcreteHandleImplementationTests
 		await handler3.Handle(new TestCommand("cmd1"), CancellationToken.None);
 
 		// Assert
-		response1.Result.Should().Be("Handled: test1");
-		response2.Should().Be(50);
-		TestCommandHandler.LastExecutedValue.Should().Be("cmd1");
+		Assert.Equal("Handled: test1", response1.Result);
+		Assert.Equal(50, response2);
+		Assert.Equal("cmd1", TestCommandHandler.LastExecutedValue);
 	}
 }

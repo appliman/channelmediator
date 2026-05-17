@@ -1,7 +1,5 @@
-﻿global using FluentAssertions;
+﻿global using System.Collections.Frozen;
 
 global using Microsoft.Extensions.DependencyInjection;
-
-global using Moq;
 
 global using Xunit;

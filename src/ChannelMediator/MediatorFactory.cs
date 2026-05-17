@@ -7,19 +7,22 @@
 /// </summary>
 internal sealed class MediatorFactory : IMediatorFactory
 {
-	private readonly IReadOnlyDictionary<Type, IRequestHandlerWrapper> _handlers;
-	private readonly IReadOnlyDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
+	private readonly FrozenDictionary<Type, IRequestHandlerWrapper> _handlers;
+	private readonly FrozenDictionary<Type, INotificationHandlerWrapper> _notificationHandlers;
+	private readonly FrozenDictionary<Type, IStreamRequestHandlerWrapper> _streamHandlers;
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ChannelMediatorConfiguration _notificationConfiguration;
 
 	public MediatorFactory(
-		IReadOnlyDictionary<Type, IRequestHandlerWrapper> handlers,
-		IReadOnlyDictionary<Type, INotificationHandlerWrapper> notificationHandlers,
+		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
+		FrozenDictionary<Type, INotificationHandlerWrapper> notificationHandlers,
 		IServiceProvider serviceProvider,
-		ChannelMediatorConfiguration notificationConfiguration)
+		ChannelMediatorConfiguration notificationConfiguration,
+		FrozenDictionary<Type, IStreamRequestHandlerWrapper>? streamHandlers = null)
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
-		_notificationHandlers = notificationHandlers ?? new Dictionary<Type, INotificationHandlerWrapper>();
+		_notificationHandlers = notificationHandlers ?? FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
+		_streamHandlers = streamHandlers ?? FrozenDictionary<Type, IStreamRequestHandlerWrapper>.Empty;
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 	}
@@ -27,6 +30,6 @@ internal sealed class MediatorFactory : IMediatorFactory
 	/// <inheritdoc />
 	public IMediator CreateMediator()
 	{
-		return new Mediator(_handlers, _notificationHandlers, _serviceProvider, _notificationConfiguration);
+		return new Mediator(_handlers, _notificationHandlers, _serviceProvider, _notificationConfiguration, _streamHandlers);
 	}
 }
