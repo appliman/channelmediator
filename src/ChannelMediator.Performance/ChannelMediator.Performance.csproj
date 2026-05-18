@@ -10,8 +10,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ChannelMediator\ChannelMediator.csproj" />
     <ProjectReference Include="..\ChannelMediator.Contracts\ChannelMediator.Contracts.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
-    <PackageReference Include="System.CommandLine" Version="2.0.5" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageReference Include="System.CommandLine" Version="2.0.8" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 
