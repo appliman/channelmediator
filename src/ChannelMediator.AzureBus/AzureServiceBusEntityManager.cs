@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
 using Microsoft.Extensions.Logging;
@@ -32,8 +33,8 @@ internal sealed class AzureServiceBusEntityManager
 	/// </summary>
 	/// <param name="topicName">The name of the topic.</param>
 	/// <param name="cancellationToken">Cancellation token.</param>
-	/// <returns>A task representing the asynchronous operation.</returns>
-	public async Task EnsureTopicExistsAsync(string topicName, CancellationToken cancellationToken = default)
+	/// <returns><c>true</c> if the topic was newly created; <c>false</c> if it already existed.</returns>
+	public async Task<bool> EnsureTopicExistsAsync(string topicName, CancellationToken cancellationToken = default)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(topicName);
 
@@ -43,9 +44,10 @@ internal sealed class AzureServiceBusEntityManager
 		if (_queueOrTopicsExist.ContainsKey(topicName))
 		{
 			_logger.LogTrace("Topic '{TopicName}' already verified in cache.", topicName);
-			return;
+			return false;
 		}
 
+		bool created = false;
 		try
 		{
 			// Check if the topic exists in Azure Service Bus
@@ -62,9 +64,16 @@ internal sealed class AzureServiceBusEntityManager
 				topicOptions.AuthorizationRules.Add(new SharedAccessAuthorizationRule("allClaims"
 					, new[] { AccessRights.Manage, AccessRights.Send, AccessRights.Listen }));
 
-				await _adminClient.CreateTopicAsync(topicOptions, cancellationToken);
-
-				_logger.LogInformation("Topic '{TopicName}' created.", topicName);
+				try
+				{
+					await _adminClient.CreateTopicAsync(topicOptions, cancellationToken);
+					_logger.LogInformation("Topic '{TopicName}' created.", topicName);
+					created = true;
+				}
+				catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+				{
+					_logger.LogTrace("Topic '{TopicName}' was created concurrently by another process.", topicName);
+				}
 			}
 			else
 			{
@@ -79,6 +88,7 @@ internal sealed class AzureServiceBusEntityManager
 
 		// Mark this topic as verified
 		_queueOrTopicsExist.TryAdd(topicName, true);
+		return created;
 	}
 
 	public async Task EnsureQueueExistsAsync(string queueName, CancellationToken cancellationToken = default)
@@ -108,9 +118,15 @@ internal sealed class AzureServiceBusEntityManager
 				};
 				queueOptions.AuthorizationRules.Add(new SharedAccessAuthorizationRule("allClaims"
 					, new[] { AccessRights.Manage, AccessRights.Send, AccessRights.Listen }));
-				await _adminClient.CreateQueueAsync(queueOptions, cancellationToken);
-
-				_logger.LogInformation("Queue '{QueueName}' created.", queueName);
+				try
+				{
+					await _adminClient.CreateQueueAsync(queueOptions, cancellationToken);
+					_logger.LogInformation("Queue '{QueueName}' created.", queueName);
+				}
+				catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+				{
+					_logger.LogTrace("Queue '{QueueName}' was created concurrently by another process.", queueName);
+				}
 			}
 			else
 			{
@@ -171,9 +187,15 @@ internal sealed class AzureServiceBusEntityManager
 					EnableBatchedOperations = true,
 				};
 
-				await _adminClient.CreateSubscriptionAsync(subscriptionOptions, cancellationToken);
-
-				_logger.LogInformation("Subscription '{SubscriptionKey}' created.", subscriptionKey);
+				try
+				{
+					await _adminClient.CreateSubscriptionAsync(subscriptionOptions, cancellationToken);
+					_logger.LogInformation("Subscription '{SubscriptionKey}' created.", subscriptionKey);
+				}
+				catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
+				{
+					_logger.LogTrace("Subscription '{SubscriptionKey}' was created concurrently by another process.", subscriptionKey);
+				}
 			}
 			else
 			{
