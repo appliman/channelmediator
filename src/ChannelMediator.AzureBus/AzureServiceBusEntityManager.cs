@@ -72,7 +72,10 @@ internal sealed class AzureServiceBusEntityManager
 				}
 				catch (ServiceBusException ex) when (ex.Reason == ServiceBusFailureReason.MessagingEntityAlreadyExists)
 				{
+					// Topic was absent at check time but another process created it first.
+					// Treat as newly created so the caller still performs subscription setup.
 					_logger.LogTrace("Topic '{TopicName}' was created concurrently by another process.", topicName);
+					created = true;
 				}
 			}
 			else
@@ -150,12 +153,14 @@ internal sealed class AzureServiceBusEntityManager
 	/// <param name="subscriptionName">The name of the subscription.</param>
 	/// <param name="notificationType">The notification type for filtering messages.</param>
 	/// <param name="cancellationToken">Cancellation token.</param>
+	/// <param name="autoDeleteOnIdle">When set, overrides the default <c>AutoDeleteOnIdle</c> for the new subscription. Use a short value for ephemeral per-instance subscriptions.</param>
 	/// <returns>A task representing the asynchronous operation.</returns>
 	public async Task EnsureSubscriptionExistsAsync(
 		string topicName,
 		string subscriptionName,
 		Type notificationType,
-		CancellationToken cancellationToken = default)
+		CancellationToken cancellationToken = default,
+		TimeSpan? autoDeleteOnIdle = null)
 	{
 		ArgumentException.ThrowIfNullOrWhiteSpace(topicName);
 		ArgumentException.ThrowIfNullOrWhiteSpace(subscriptionName);
@@ -183,7 +188,7 @@ internal sealed class AzureServiceBusEntityManager
 				{
 					// Filter messages to only receive notifications of the expected type
 					DefaultMessageTimeToLive = TimeSpan.FromDays(1),
-					AutoDeleteOnIdle = TimeSpan.FromDays(1),
+					AutoDeleteOnIdle = autoDeleteOnIdle ?? TimeSpan.FromDays(1),
 					EnableBatchedOperations = true,
 				};
 

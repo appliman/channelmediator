@@ -52,7 +52,16 @@ internal sealed class AzureServiceBusPublisher : IAzurePublisher, IAsyncDisposab
 			queueOrTopicName,
 			name => new Lazy<Task>(() => SetupTopicAsync(name, typeof(TNotification))));
 
-		await lazySetup.Value;
+		try
+		{
+			await lazySetup.Value;
+		}
+		catch
+		{
+			// Remove only this specific faulted entry so the next caller can retry setup.
+			_topicSetupTasks.TryRemove(KeyValuePair.Create(queueOrTopicName, lazySetup));
+			throw;
+		}
 
 		var sender = GetOrCreateSender(queueOrTopicName);
 		var message = CreateMessage(notification);
@@ -75,7 +84,7 @@ internal sealed class AzureServiceBusPublisher : IAzurePublisher, IAsyncDisposab
 
 		await _entityManager.EnsureSubscriptionExistsAsync(
 			topicName,
-			_options.TopicSubscriberName,
+			_options.TopicSubscriberName.ToLowerInvariant(),
 			notificationType);
 
 		await SendReloadSignalAsync(topicName, CancellationToken.None);
