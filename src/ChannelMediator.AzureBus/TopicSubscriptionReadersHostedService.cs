@@ -1,4 +1,6 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using System.Security.Cryptography;
+
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -78,10 +80,19 @@ internal sealed class TopicSubscriptionReadersHostedService : IHostedService, IA
 		CancellationToken cancellationToken)
 	{
 		var reloadTopicName = AzureServiceBusNameBuilder.BuildReloadTopicName(options.Prefix);
-		var subscriptionName = options.TopicSubscriberName.ToLowerInvariant();
+
+		// Each instance gets its own subscription so every pod receives the reload signal
+		// (Service Bus load-balances a shared subscription — only one instance would get each message).
+		// The name is derived from machine + assembly location so it survives restarts without accumulating stale subscriptions.
+		var subscriptionName = BuildInstanceReloadSubscriptionName(options.TopicSubscriberName);
 
 		await entityManager.EnsureTopicExistsAsync(reloadTopicName, cancellationToken);
-		await entityManager.EnsureSubscriptionExistsAsync(reloadTopicName, subscriptionName, typeof(INotification), cancellationToken);
+		await entityManager.EnsureSubscriptionExistsAsync(
+			reloadTopicName,
+			subscriptionName,
+			typeof(INotification),
+			cancellationToken,
+			autoDeleteOnIdle: TimeSpan.FromMinutes(10));
 
 		_logger.LogInformation("[reload-topics] Listening on internal topic '{ReloadTopic}' / subscription '{Subscription}'.", reloadTopicName, subscriptionName);
 
@@ -108,6 +119,29 @@ internal sealed class TopicSubscriptionReadersHostedService : IHostedService, IA
 		};
 
 		await _reloadProcessor.StartProcessingAsync(cancellationToken);
+	}
+
+	/// <summary>
+	/// Builds a stable, per-instance subscription name for the reload topic.
+	/// The suffix is a CRC derived from the machine name and assembly location so it is
+	/// deterministic across restarts and unique per deployment host, preventing
+	/// Service Bus load-balancing from routing the reload signal to only one instance.
+	/// </summary>
+	private static string BuildInstanceReloadSubscriptionName(string topicSubscriberName)
+	{
+		var raw = $"{Environment.MachineName}|{typeof(TopicSubscriptionReadersHostedService).Assembly.Location}";
+		var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(raw));
+		var suffix = $"-{Convert.ToHexString(hash, 0, 4).ToLowerInvariant()}"; // "-" + 8 hex chars = 9 chars
+
+		var baseName = topicSubscriberName.ToLowerInvariant();
+		const int maxServiceBusLength = 50;
+		var maxBase = maxServiceBusLength - suffix.Length;
+		if (baseName.Length > maxBase)
+		{
+			baseName = baseName[..maxBase];
+		}
+
+		return $"{baseName}{suffix}";
 	}
 
 	/// <summary>
