@@ -14,6 +14,7 @@ internal sealed class AzureServiceBusPublisher : IAzurePublisher, IAsyncDisposab
 	private readonly AzureServiceBusEntityManager _entityManager;
 	private readonly AzureServiceBusOptions _options;
 	private readonly ConcurrentDictionary<string, ServiceBusSender> _senders = new();
+	private readonly ConcurrentDictionary<string, Lazy<Task>> _topicSetupTasks = new();
 	private readonly JsonSerializerOptions _jsonOptions;
 	private bool _disposed;
 
@@ -43,12 +44,58 @@ internal sealed class AzureServiceBusPublisher : IAzurePublisher, IAsyncDisposab
 		where TNotification : INotification
 	{
 		var queueOrTopicName = AzureServiceBusNameBuilder.Build(_options.Prefix, typeof(TNotification).Name);
-		await _entityManager.EnsureTopicExistsAsync(queueOrTopicName, cancellationToken);
+
+		// All concurrent callers for the same topic share a single setup task via Lazy<Task>.
+		// This ensures the topic and its subscription are fully created before any message is sent,
+		// even when multiple notifications of the same type are dispatched concurrently.
+		var lazySetup = _topicSetupTasks.GetOrAdd(
+			queueOrTopicName,
+			name => new Lazy<Task>(() => SetupTopicAsync(name, typeof(TNotification))));
+
+		await lazySetup.Value;
 
 		var sender = GetOrCreateSender(queueOrTopicName);
 		var message = CreateMessage(notification);
-
 		await sender.SendMessageAsync(message, cancellationToken);
+	}
+
+	/// <summary>
+	/// One-shot initialization for a topic: creates the topic if needed, ensures the subscription
+	/// exists before any message is sent, then broadcasts the reload signal to readers.
+	/// Uses <see cref="CancellationToken.None"/> so that a single caller's cancellation
+	/// does not abort setup for all concurrent callers.
+	/// </summary>
+	private async Task SetupTopicAsync(string topicName, Type notificationType)
+	{
+		var isNewTopic = await _entityManager.EnsureTopicExistsAsync(topicName);
+		if (!isNewTopic)
+		{
+			return;
+		}
+
+		await _entityManager.EnsureSubscriptionExistsAsync(
+			topicName,
+			_options.TopicSubscriberName,
+			notificationType);
+
+		await SendReloadSignalAsync(topicName, CancellationToken.None);
+	}
+
+	/// <summary>
+	/// Sends a reload signal to the internal <c>{prefix}reload-topics</c> topic so that readers
+	/// can discover and subscribe to the newly created topic.
+	/// </summary>
+	private async Task SendReloadSignalAsync(string newTopicName, CancellationToken cancellationToken)
+	{
+		var reloadTopicName = AzureServiceBusNameBuilder.BuildReloadTopicName(_options.Prefix);
+
+		// Ensure the reload topic exists — it is normally created by readers at startup,
+		// but the writer may start before any reader.
+		await _entityManager.EnsureTopicExistsAsync(reloadTopicName, cancellationToken);
+
+		var sender = GetOrCreateSender(reloadTopicName);
+		var signal = new ServiceBusMessage(newTopicName) { ContentType = "text/plain" };
+		await sender.SendMessageAsync(signal, cancellationToken);
 	}
 
 	/// <inheritdoc />

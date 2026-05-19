@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 var host = Host.CreateDefaultBuilder(args)
+	.UseEnvironment(Environments.Development)
 	.ConfigureServices((context, services) =>
 	{
 		var connectionString = context.Configuration.GetConnectionString("AzureBusConnectionString");

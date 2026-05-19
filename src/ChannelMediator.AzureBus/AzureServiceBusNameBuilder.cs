@@ -17,6 +17,15 @@ internal static class AzureServiceBusNameBuilder
         return NormalizeName(combined);
     }
 
+    /// <summary>
+    /// Builds the internal reload-topics topic name: <c>{prefix}reload-topics</c>.
+    /// This topic is created by design and used to signal readers that a new topic was created.
+    /// </summary>
+    internal static string BuildReloadTopicName(string? prefix)
+    {
+        return Build(prefix, "reload-topics");
+    }
+
     private static string NormalizeName(string value)
     {
         var lower = value.ToLowerInvariant();
@@ -37,6 +46,6 @@ internal static class AzureServiceBusNameBuilder
         var result = builder.ToString().Trim('.', '-');
         result = result.Replace(".-", "-");
 
-		return result;
+        return result;
     }
 }
