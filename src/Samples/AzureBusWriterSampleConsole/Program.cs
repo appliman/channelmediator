@@ -1,4 +1,8 @@
 ﻿using System.Reflection;
+using System.Text.Json;
+
+using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus.Administration;
 
 using ChannelMediator;
 using ChannelMediator.AzureBus;
@@ -33,9 +37,57 @@ var app = host.Build();
 await app.StartAsync();
 
 var mediator = app.Services.GetRequiredService<IMediator>();
+var serviceBusClient = app.Services.GetRequiredService<ServiceBusClient>();
+var administrationClient = app.Services.GetRequiredService<ServiceBusAdministrationClient>();
 
-await mediator.EnqueueRequest(new MyRequest("enqueue-test"));
-await mediator.Notify(new ProductAddedNotification("p01", 10, 100));
+const string queuePrefix = "sampleapp-";
+var forcedQueueName = $"{queuePrefix}{ForcedQueueNames.MyRequest}";
+var forcedTopicName = $"{queuePrefix}{ForcedQueueNames.ProductAddedNotification}";
+
+if (!await administrationClient.QueueExistsAsync(forcedQueueName))
+{
+	await administrationClient.CreateQueueAsync(new CreateQueueOptions(forcedQueueName));
+}
+
+await using var forcedQueueSender = serviceBusClient.CreateSender(forcedQueueName);
+await using var forcedTopicSender = serviceBusClient.CreateSender(forcedTopicName);
+var serializerOptions = new JsonSerializerOptions
+{
+	PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+};
+
+var forcedQueueRequest = new MyRequest("enqueue-test-via-forced-queue");
+var forcedQueueMessage = new ServiceBusMessage(JsonSerializer.SerializeToUtf8Bytes(forcedQueueRequest, serializerOptions))
+{
+	ContentType = "application/json",
+	Subject = nameof(MyRequest),
+	ApplicationProperties =
+	{
+		["messagetype"] = typeof(MyRequest).AssemblyQualifiedName
+	}
+};
+
+await forcedQueueSender.SendMessageAsync(forcedQueueMessage);
+Console.WriteLine($"[WRITER] Sent MyRequest to forced queue '{forcedQueueName}' even though the queue name differs from the message type.");
+
+if (!await administrationClient.TopicExistsAsync(forcedTopicName))
+{
+	await administrationClient.CreateTopicAsync(new CreateTopicOptions(forcedTopicName));
+}
+
+var forcedTopicNotification = new ProductAddedNotification("p01", 10, 100);
+var forcedTopicMessage = new ServiceBusMessage(JsonSerializer.SerializeToUtf8Bytes(forcedTopicNotification, serializerOptions))
+{
+	ContentType = "application/json",
+	Subject = nameof(ProductAddedNotification),
+	ApplicationProperties =
+	{
+		["messagetype"] = typeof(ProductAddedNotification).AssemblyQualifiedName
+	}
+};
+
+await forcedTopicSender.SendMessageAsync(forcedTopicMessage);
+Console.WriteLine($"[WRITER] Sent ProductAddedNotification to forced topic '{forcedTopicName}' even though the topic name differs from the message type.");
 
 // Publish multiple OrderShippedNotification messages and verify delivery via logs
 var orders = new[]

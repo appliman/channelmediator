@@ -23,8 +23,12 @@ var host = Host.CreateDefaultBuilder(args)
 				opts.ConnectionString = connectionString!;
 				opts.TopicSubscriberName = "my-subscriber-name";
 
-				opts.AddAzureQueueRequestReader<MyRequest>();
-				opts.AddAllAzureBusTopicNotification();
+				opts.AddAzureQueueRequestReader<MyRequest>(ForcedQueueNames.MyRequest);
+				opts.AddAzureBusTopicNotificationReader<ProductAddedNotification>(opts.TopicSubscriberName, reader =>
+				{
+					reader.TopicName = $"{opts.Prefix}{ForcedQueueNames.ProductAddedNotification}";
+				});
+				opts.AddAzureBusTopicNotificationReader<OrderShippedNotification>(opts.TopicSubscriberName);
 			});
 
 		}, Assembly.GetExecutingAssembly());
