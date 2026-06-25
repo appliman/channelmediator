@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/2-PubSub/">
     <Project Path="src/ChannelMediator.AzureBus/ChannelMediator.AzureBus.csproj" />
+    <Project Path="src/ChannelMediator.InMemory/ChannelMediator.InMemory.csproj" />
     <Project Path="src/ChannelMediator.RabbitMQ/ChannelMediator.RabbitMQ.csproj" />
   </Folder>
   <Folder Name="/3-Api/">
@@ -35,7 +36,6 @@
   <Folder Name="/Solution Items/">
     <File Path=".azure-pipelines/workflows/azure-pipeline.yml" />
     <File Path=".azure-pipelines/workflows/channelmediator-publish.yml" />
-    <File Path=".github/workflows/ci-publish.yml" />
     <File Path="AZURE_SERVICE_BUS.md" />
     <File Path="CODE_EXAMPLES.md" />
     <File Path="README.md" />

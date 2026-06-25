@@ -34,6 +34,7 @@
     <ProjectReference Include="..\ChannelMediator.MinimalApiGenerator\ChannelMediator.MinimalApiGenerator.csproj" />
     <ProjectReference Include="..\ChannelMediator.ApiGenerators.Abstraction\ChannelMediator.ApiGenerators.Abstraction.csproj" />
     <ProjectReference Include="..\ChannelMediator.AzureBus\ChannelMediator.AzureBus.csproj" />
+    <ProjectReference Include="..\ChannelMediator.InMemory\ChannelMediator.InMemory.csproj" />
   </ItemGroup>
 
 </Project>

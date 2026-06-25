@@ -3,6 +3,7 @@
 [![NuGet ChannelMediator](https://img.shields.io/nuget/v/ChannelMediator?label=ChannelMediator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator/)
 [![NuGet ChannelMediator.Contracts](https://img.shields.io/nuget/v/ChannelMediator.Contracts?label=ChannelMediator.Contracts&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.Contracts/)
 [![NuGet ChannelMediator.AzureBus](https://img.shields.io/nuget/v/ChannelMediator.AzureBus?label=ChannelMediator.AzureBus&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.AzureBus/)
+[![NuGet ChannelMediator.InMemory](https://img.shields.io/nuget/v/ChannelMediator.InMemory?label=ChannelMediator.InMemory&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.InMemory/)
 [![NuGet ChannelMediator.RabbitMQ](https://img.shields.io/nuget/v/ChannelMediator.RabbitMQ?label=ChannelMediator.RabbitMQ&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.RabbitMQ/)
 [![NuGet ChannelMediator.ApiGenerators.Abstraction](https://img.shields.io/nuget/v/ChannelMediator.ApiGenerators.Abstraction?label=ChannelMediator.ApiGenerators.Abstraction&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.ApiGenerators.Abstraction/)
 [![NuGet ChannelMediator.MinimalApiGenerator](https://img.shields.io/nuget/v/ChannelMediator.MinimalApiGenerator?label=ChannelMediator.MinimalApiGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.MinimalApiGenerator/)
@@ -25,6 +26,7 @@ Compatible with **.NET 8**, **.NET 9**, and **.NET 10**.
 - ✅ **Streaming** - `IAsyncEnumerable<T>` with `IStreamRequest<T>` and stream pipeline behaviors
 - ✅ **Parallel Notifications** - Sequential or parallel broadcasting
 - ✅ **High Performance** - Channel-based with modern optimizations
+- ✅ **In-Memory Pub/Sub** - Fire-and-forget `Notify` and `EnqueueRequest` without an external broker
 - ✅ **Azure Service Bus** - Distributed messaging with queues and topics
 - ✅ **RabbitMQ** - Self-hosted distributed messaging with exchanges and queues
 - ✅ **Minimal API Generator** - Source-generated endpoint mapping from request attributes
@@ -255,6 +257,7 @@ services.AddScoped<IStreamPipelineBehavior<GetOrderLinesQuery, OrderLineDto>,
 
 ## 📚 Documentation
 
+- [🧠 In-Memory Integration](#-in-memory-integration)
 - [🚌 Azure Service Bus Integration](./AZURE_SERVICE_BUS.md)
 - [🐇 RabbitMQ Integration](./RABBITMQ.md)
 - [⚡ Minimal API & Client Generators](./GENERATORS.md)
@@ -351,6 +354,31 @@ Pipeline Behaviors (chain)
   ├─ Specific Behavior 1
   └─ Request Handler (business logic)
 ```
+
+## 🧠 In-Memory Integration
+
+`ChannelMediator.InMemory` provides the same `Notify` and `EnqueueRequest` extension methods as the broker integrations, but dispatches everything inside the current process.
+
+This is useful when you want the producer call to return immediately while the actual handler execution continues on a background thread, without requiring Azure Service Bus or RabbitMQ.
+
+```csharp
+using ChannelMediator.InMemory;
+
+services.AddChannelMediator(config =>
+{
+    config.UseChannelMediatorInMemory();
+}, Assembly.GetExecutingAssembly());
+
+var mediator = provider.GetRequiredService<IMediator>();
+
+// Scheduled on a background thread, returns immediately
+await mediator.Notify(new ProductAddedNotification("SKU-001", 5));
+
+// Scheduled on a background thread, returns immediately
+await mediator.EnqueueRequest(new MyRequest("process-order-42"));
+```
+
+Both methods use fire-and-forget scheduling: the returned task completes once the in-memory work has been scheduled, not when the handler has completed.
 
 ## 🚌 Azure Service Bus Integration
 

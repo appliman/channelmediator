@@ -68,6 +68,13 @@ jobs:
           --configuration Release
           --output ./nupkgs
 
+      - name: Pack ChannelMediator.InMemory
+        run: >
+          dotnet pack src/ChannelMediator.InMemory/ChannelMediator.InMemory.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
       - name: Pack ChannelMediator.ApiGenerators.Abstraction
         run: >
           dotnet pack src/ChannelMediator.ApiGenerators.Abstraction/ChannelMediator.ApiGenerators.Abstraction.csproj
