@@ -1,10 +1,7 @@
-﻿name: Build, Test & Publish to NuGet
+﻿name: Publish to NuGet
 
 on:
   push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
     branches: [main]
   workflow_dispatch:
 
@@ -15,16 +12,12 @@ env:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
-
   publish:
     name: Pack & Publish to NuGet
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout
@@ -75,9 +68,16 @@ jobs:
           --configuration Release
           --output ./nupkgs
 
-      - name: Pack ChannelMediator.MinimalApiGenerator.Abstraction
+      - name: Pack ChannelMediator.InMemory
         run: >
-          dotnet pack src/ChannelMediator.MinimalApiGenerator.Abstraction/ChannelMediator.MinimalApiGenerator.Abstraction.csproj
+          dotnet pack src/ChannelMediator.InMemory/ChannelMediator.InMemory.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.ApiGenerators.Abstraction
+        run: >
+          dotnet pack src/ChannelMediator.ApiGenerators.Abstraction/ChannelMediator.ApiGenerators.Abstraction.csproj
           --no-build
           --configuration Release
           --output ./nupkgs
@@ -92,6 +92,20 @@ jobs:
       - name: Pack ChannelMediator.ApiClientGenerator
         run: >
           dotnet pack src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.GrpcGenerator
+        run: >
+          dotnet pack src/ChannelMediator.GrpcGenerator/ChannelMediator.GrpcGenerator.csproj
+          --no-build
+          --configuration Release
+          --output ./nupkgs
+
+      - name: Pack ChannelMediator.GrpcClientGenerator
+        run: >
+          dotnet pack src/ChannelMediator.GrpcClientGenerator/ChannelMediator.GrpcClientGenerator.csproj
           --no-build
           --configuration Release
           --output ./nupkgs

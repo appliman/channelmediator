@@ -2,7 +2,8 @@ namespace ChannelMediatorApiContractsSample.Models;
 
 [EndpointApi(
 	GroupName = "Catalog",
-	Path = "products"
+	Path = "products",
+	Protocol = EndpointProtocol.Both
 )]
 public record SaveProductRequest(Product Product)
 	: IRequest<Product>;

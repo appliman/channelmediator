@@ -6,7 +6,8 @@ namespace ChannelMediatorApiContractsSample.Models;
 	UseHttpStandardVerbs = true,
 	Tags = new[] { "Catalog" },
 	Summary = "Delete a product",
-	Description = "Delete a product by ID"
+	Description = "Delete a product by ID",
+	Protocol = EndpointProtocol.Both
 )]
 public record DeleteProductRequest(int Id)
 	: IRequest<bool>;

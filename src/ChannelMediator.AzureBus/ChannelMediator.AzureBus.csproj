@@ -4,14 +4,14 @@
    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-   <GenerateDocumentationFile>true</GenerateDocumentationFile>
+   		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<Version>1.1.13.0</Version>
-    <Authors>Appliman</Authors>
+		<Version>1.1.14.0</Version>
+    	<Authors>Appliman</Authors>
 		<PackageProjectUrl>https://github.com/appliman/channelmediator</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/appliman/channelmediator</RepositoryUrl>
+    	<RepositoryUrl>https://github.com/appliman/channelmediator</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<PackageTags>ChannelMediator;AzureServiceBus;ServiceBus;Messaging;Queues;Topics</PackageTags>
@@ -25,9 +25,9 @@
 
 	<ItemGroup>
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.5" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.201" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>

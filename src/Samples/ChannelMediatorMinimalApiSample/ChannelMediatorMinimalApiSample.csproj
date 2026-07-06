@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
-		<PackageReference Include="Scalar.AspNetCore" Version="2.11.10" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -16,7 +16,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\ChannelMediator.MinimalApiGenerator.Abstraction\ChannelMediator.MinimalApiGenerator.Abstraction.csproj" />
+	  <ProjectReference Include="..\..\ChannelMediator.ApiGenerators.Abstraction\ChannelMediator.ApiGenerators.Abstraction.csproj" />
 	  <ProjectReference Include="..\..\ChannelMediator.MinimalApiGenerator\ChannelMediator.MinimalApiGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	  <ProjectReference Include="..\..\ChannelMediatorApiContractsSample\ChannelMediatorApiContractsSample.csproj" />
 	  <ProjectReference Include="..\..\ChannelMediator\ChannelMediator.csproj" />

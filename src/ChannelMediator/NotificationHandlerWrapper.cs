@@ -17,4 +17,5 @@ internal sealed class NotificationHandlerWrapper<TNotification> : INotificationH
 			await handler.Handle(typedNotification, cancellationToken);
 		}
 	}
+
 }

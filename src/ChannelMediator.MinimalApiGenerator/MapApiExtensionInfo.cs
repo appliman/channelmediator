@@ -11,6 +11,11 @@ internal class MapApiExtensionInfo
 	public bool IsStatic { get; set; }
 	public bool IsPartial { get; set; }
 
+	/// <summary>
+	/// Underlying int value of <c>JsonSerializerOptionsPreset</c>: 0 = Web, 1 = Default.
+	/// </summary>
+	public int JsonOptions { get; set; }
+
 	/// <summary>Location of the class declaration. Excluded from equality because it changes between compilations and must not defeat the incremental pipeline cache. <see cref="IsStatic"/> and <see cref="IsPartial"/> are included in equality because a change in those modifiers must invalidate the cached result.</summary>
 	public Location? Location { get; set; }
 
@@ -20,11 +25,12 @@ internal class MapApiExtensionInfo
 			&& ClassName == other.ClassName
 			&& Namespace == other.Namespace
 			&& IsStatic == other.IsStatic
-			&& IsPartial == other.IsPartial;
+			&& IsPartial == other.IsPartial
+			&& JsonOptions == other.JsonOptions;
 	}
 
 	public override int GetHashCode()
 	{
-		return (ClassName, Namespace, IsStatic, IsPartial).GetHashCode();
+		return (ClassName, Namespace, IsStatic, IsPartial, JsonOptions).GetHashCode();
 	}
 }

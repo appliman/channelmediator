@@ -94,7 +94,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                 var fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                if (fullName == "ChannelMediator.MinimalApiGenerator.Abstraction.MapApiExtensionAttribute")
+                if (fullName == "ChannelMediator.ApiGenerators.Abstraction.MapApiExtensionAttribute")
                 {
                     var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration);
                     if (classSymbol is null)
@@ -103,17 +103,24 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     }
 
                     var attributeData = classSymbol.GetAttributes()
-                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.MinimalApiGenerator.Abstraction.MapApiExtensionAttribute");
+                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.ApiGenerators.Abstraction.MapApiExtensionAttribute");
 
                     var withVersionning = GetAttributeValue<bool>(attributeData, "WithVersionning");
                     var scanAssemblies = GetAttributeArrayValue(attributeData, "ScanAssemblies");
+                    var jsonOptions = GetAttributeValue<int>(attributeData, "JsonOptions");
 
                     var isStatic = false;
                     var isPartial = false;
                     foreach (var modifier in classDeclaration.Modifiers)
                     {
-                        if (modifier.IsKind(SyntaxKind.StaticKeyword)) isStatic = true;
-                        else if (modifier.IsKind(SyntaxKind.PartialKeyword)) isPartial = true;
+                        if (modifier.IsKind(SyntaxKind.StaticKeyword))
+                        {
+                            isStatic = true;
+                        }
+                        else if (modifier.IsKind(SyntaxKind.PartialKeyword))
+                        {
+                            isPartial = true;
+                        }
                     }
 
                     return new MapApiExtensionInfo
@@ -124,6 +131,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         ScanAssemblies = scanAssemblies,
                         IsStatic = isStatic,
                         IsPartial = isPartial,
+                        JsonOptions = jsonOptions,
                         Location = classDeclaration.GetLocation()
                     };
                 }
@@ -150,7 +158,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var attributeContainingTypeSymbol = attributeSymbol.ContainingType;
                 var fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                if (fullName == "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute")
+                if (fullName == "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute")
                 {
                     var typeSymbol = context.SemanticModel.GetDeclaredSymbol(typeDeclaration) as INamedTypeSymbol;
                     if (typeSymbol is null)
@@ -159,7 +167,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     }
 
                     var attributeData = typeSymbol.GetAttributes()
-                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute");
+                        .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute");
 
                     var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
                     var hasExplicitGroupName = attributeData?.NamedArguments.Any(na => na.Key == "GroupName") == true;
@@ -170,6 +178,18 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     var description = GetAttributeValue<string>(attributeData, "Description");
                     var authenticationSchemes = GetAttributeArrayValue(attributeData, "AuthenticationSchemes");
                     var useHttpStandardVerbs = GetAttributeValue<bool>(attributeData, "UseHttpStandardVerbs");
+                    var protocol = GetAttributeValue<int>(attributeData, "Protocol");
+
+                    // If Protocol was not set, default is Http (1). Only include if Http flag is set.
+                    if (protocol == 0)
+                    {
+                        protocol = 1;
+                    }
+
+                    if ((protocol & 1) == 0)
+                    {
+                        return null;
+                    }
 
                     var httpVerb = "POST";
                     var parameters = new List<RequestParameter>();
@@ -220,7 +240,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                         Parameters = parameters,
                         IsResponseNullable = isResponseNullable,
                         ResponseTypeName = responseTypeName,
-                        IsStream = isStream
+                        IsStream = isStream,
+                        Protocol = protocol
                     };
                 }
             }
@@ -341,13 +362,15 @@ public class MinimalApiGenerator : IIncrementalGenerator
     private static List<EndpointApiInfo> GetEndpointApisFromReferencedAssemblies(Compilation compilation, string[] scanAssemblies)
     {
         var results = new List<EndpointApiInfo>();
-        var endpointApiAttributeName = "ChannelMediator.MinimalApiGenerator.Abstraction.EndpointApiAttribute";
+        var endpointApiAttributeName = "ChannelMediator.ApiGenerators.Abstraction.EndpointApiAttribute";
         var filterByAssembly = scanAssemblies.Length > 0;
 
         foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
         {
             if (filterByAssembly && !scanAssemblies.Contains(reference.Name))
+            {
                 continue;
+            }
 
             var types = GetAllNamedTypes(reference.GlobalNamespace);
             foreach (var typeSymbol in types)
@@ -356,7 +379,9 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     .FirstOrDefault(ad => ad.AttributeClass?.ToDisplayString() == endpointApiAttributeName);
 
                 if (attributeData is null)
+                {
                     continue;
+                }
 
                 var groupName = GetAttributeValue<string>(attributeData, "GroupName") ?? "Default";
                 var hasExplicitGroupName = attributeData.NamedArguments.Any(na => na.Key == "GroupName");
@@ -367,6 +392,18 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var description = GetAttributeValue<string>(attributeData, "Description");
                 var authenticationSchemes = GetAttributeArrayValue(attributeData, "AuthenticationSchemes");
                 var useHttpStandardVerbs = GetAttributeValue<bool>(attributeData, "UseHttpStandardVerbs");
+                var protocol = GetAttributeValue<int>(attributeData, "Protocol");
+
+                // If Protocol was not set, default is Http (1). Only include if Http flag is set.
+                if (protocol == 0)
+                {
+                    protocol = 1;
+                }
+
+                if ((protocol & 1) == 0)
+                {
+                    continue;
+                }
 
                 var httpVerb = "POST";
                 var parameters = new List<RequestParameter>();
@@ -374,13 +411,21 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 if (useHttpStandardVerbs)
                 {
                     if (typeSymbol.Name.StartsWith("Get"))
+                    {
                         httpVerb = "GET";
+                    }
                     else if (typeSymbol.Name.StartsWith("Delete"))
+                    {
                         httpVerb = "DELETE";
+                    }
                     else if (typeSymbol.Name.StartsWith("Put") || typeSymbol.Name.StartsWith("Update"))
+                    {
                         httpVerb = "PUT";
+                    }
                     else if (typeSymbol.Name.StartsWith("Post") || typeSymbol.Name.StartsWith("Create") || typeSymbol.Name.StartsWith("Save"))
+                    {
                         httpVerb = "POST";
+                    }
                 }
 
                 if (httpVerb == "GET" || httpVerb == "DELETE")
@@ -414,7 +459,8 @@ public class MinimalApiGenerator : IIncrementalGenerator
                     Parameters = parameters,
                     IsResponseNullable = isResponseNullable,
                     ResponseTypeName = responseTypeName,
-                    IsStream = isStream
+                    IsStream = isStream,
+                    Protocol = protocol
                 });
             }
         }
@@ -427,11 +473,15 @@ public class MinimalApiGenerator : IIncrementalGenerator
         foreach (var member in namespaceSymbol.GetMembers())
         {
             if (member is INamedTypeSymbol namedType)
+            {
                 yield return namedType;
+            }
             else if (member is INamespaceSymbol childNamespace)
             {
                 foreach (var type in GetAllNamedTypes(childNamespace))
+                {
                     yield return type;
+                }
             }
         }
     }
@@ -609,12 +659,12 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
             if (ungroupedEndpoints.Count > 0)
             {
-                AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
+                AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true, mapApiClass.JsonOptions);
             }
         }
         else
         {
-            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true);
+            AppendEndpointMappings(sb, ungroupedEndpoints, "routes", true, mapApiClass.JsonOptions);
         }
 
         sb.AppendLine("    }");
@@ -626,7 +676,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 sb.AppendLine();
                 AppendMapMethodSignature(sb, mapApiClass, GetGroupMethodName(mapApiClass.ClassName, group.Key));
                 sb.AppendLine("    {");
-                AppendEndpointMappings(sb, group.ToList(), "routes", true);
+                AppendEndpointMappings(sb, group.ToList(), "routes", true, mapApiClass.JsonOptions);
                 sb.AppendLine("    }");
             }
         }
@@ -682,7 +732,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static void AppendEndpointMappings(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, bool createGroupRoute)
+    private static void AppendEndpointMappings(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, bool createGroupRoute, int jsonOptions = 0)
     {
         if (createGroupRoute)
         {
@@ -716,15 +766,19 @@ public class MinimalApiGenerator : IIncrementalGenerator
             sb.AppendLine(groupChain[groupChain.Count - 1] + ";");
             sb.AppendLine();
 
-            AppendEndpointMappingsCore(sb, endpoints, groupVariableName);
+            AppendEndpointMappingsCore(sb, endpoints, groupVariableName, jsonOptions);
             return;
         }
 
-        AppendEndpointMappingsCore(sb, endpoints, routeBuilderExpression);
+        AppendEndpointMappingsCore(sb, endpoints, routeBuilderExpression, jsonOptions);
     }
 
-    private static void AppendEndpointMappingsCore(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression)
+    private static void AppendEndpointMappingsCore(StringBuilder sb, List<EndpointApiInfo> endpoints, string routeBuilderExpression, int jsonOptions = 0)
     {
+        var jsonOptionsArg = jsonOptions == 0
+            ? "System.Text.Json.JsonSerializerOptions.Web"
+            : null;
+
         foreach (var endpoint in endpoints)
         {
             var entityName = endpoint.Path.ToLowerInvariant();
@@ -753,7 +807,10 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 handlerLines.Add("            httpResponse.ContentType = \"application/x-ndjson\";");
                 handlerLines.Add($"            await foreach (var item in mediator.CreateStream({requestCreation}, cancellationToken))");
                 handlerLines.Add("            {");
-                handlerLines.Add("                await httpResponse.WriteAsync(System.Text.Json.JsonSerializer.Serialize(item, System.Text.Json.JsonSerializerOptions.Web), cancellationToken);");
+                var serializeExpr = jsonOptionsArg != null
+                    ? $"System.Text.Json.JsonSerializer.Serialize(item, {jsonOptionsArg})"
+                    : "System.Text.Json.JsonSerializer.Serialize(item)";
+                handlerLines.Add($"                await httpResponse.WriteAsync({serializeExpr}, cancellationToken);");
                 handlerLines.Add("                await httpResponse.WriteAsync(\"\\n\", cancellationToken);");
                 handlerLines.Add("                await httpResponse.Body.FlushAsync(cancellationToken);");
                 handlerLines.Add("            }");
@@ -770,30 +827,42 @@ public class MinimalApiGenerator : IIncrementalGenerator
 
                     if (endpoint.IsResponseNullable)
                     {
+                        var okResult = jsonOptionsArg != null
+                            ? $"Microsoft.AspNetCore.Http.Results.Json(result, {jsonOptionsArg})"
+                            : "Microsoft.AspNetCore.Http.Results.Ok(result)";
                         handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator) =>");
                         handlerLines.Add("        {");
                         handlerLines.Add($"            var result = await mediator.Send({requestCreation});");
-                        handlerLines.Add("            return result is not null ? Microsoft.AspNetCore.Http.Results.Ok(result) : Microsoft.AspNetCore.Http.Results.NotFound();");
+                        handlerLines.Add($"            return result is not null ? {okResult} : Microsoft.AspNetCore.Http.Results.NotFound();");
                         lastHandlerLine = "        })";
                     }
                     else
                     {
+                        var returnExpr = jsonOptionsArg != null
+                            ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send({requestCreation}), {jsonOptionsArg})"
+                            : $"await mediator.Send({requestCreation})";
                         handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
-                        lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+                        lastHandlerLine = $"            => {returnExpr})";
                     }
                 }
                 else if (endpoint.IsResponseNullable)
                 {
+                    var okResult = jsonOptionsArg != null
+                        ? $"Microsoft.AspNetCore.Http.Results.Json(result, {jsonOptionsArg})"
+                        : "Microsoft.AspNetCore.Http.Results.Ok(result)";
                     handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async (IMediator mediator) =>");
                     handlerLines.Add("        {");
                     handlerLines.Add($"            var result = await mediator.Send(new {endpoint.RequestTypeName}());");
-                    handlerLines.Add("            return result is not null ? Microsoft.AspNetCore.Http.Results.Ok(result) : Microsoft.AspNetCore.Http.Results.NotFound();");
+                    handlerLines.Add($"            return result is not null ? {okResult} : Microsoft.AspNetCore.Http.Results.NotFound();");
                     lastHandlerLine = "        })";
                 }
                 else
                 {
+                    var returnExpr = jsonOptionsArg != null
+                        ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send(new {endpoint.RequestTypeName}()), {jsonOptionsArg})"
+                        : $"await mediator.Send(new {endpoint.RequestTypeName}())";
                     handlerLines.Add($"        {routeBuilderExpression}.MapGet(\"/{entityName}\", async (IMediator mediator)");
-                    lastHandlerLine = $"            => await mediator.Send(new {endpoint.RequestTypeName}()))";
+                    lastHandlerLine = $"            => {returnExpr})";
                 }
             }
             else if (endpoint.HttpVerb == "DELETE" && endpoint.Parameters.Any())
@@ -802,19 +871,27 @@ public class MinimalApiGenerator : IIncrementalGenerator
                 var requestCreation = endpoint.Parameters.Count == 1
                     ? $"new {endpoint.RequestTypeName}({endpoint.Parameters[0].Name})"
                     : $"new {endpoint.RequestTypeName}({string.Join(", ", endpoint.Parameters.Select(p => p.Name))})";
-
+                var returnExpr = jsonOptionsArg != null
+                    ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send({requestCreation}), {jsonOptionsArg})"
+                    : $"await mediator.Send({requestCreation})";
                 handlerLines.Add($"        {routeBuilderExpression}.MapDelete(\"/{entityName}\", async ({paramsList}, IMediator mediator)");
-                lastHandlerLine = $"            => await mediator.Send({requestCreation}))";
+                lastHandlerLine = $"            => {returnExpr})";
             }
             else if (endpoint.HttpVerb == "PUT")
             {
+                var returnExpr = jsonOptionsArg != null
+                    ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send(request), {jsonOptionsArg})"
+                    : "await mediator.Send(request)";
                 handlerLines.Add($"        {routeBuilderExpression}.MapPut(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
-                lastHandlerLine = "            => await mediator.Send(request))";
+                lastHandlerLine = $"            => {returnExpr})";
             }
             else
             {
+                var returnExpr = jsonOptionsArg != null
+                    ? $"Microsoft.AspNetCore.Http.Results.Json(await mediator.Send(request), {jsonOptionsArg})"
+                    : "await mediator.Send(request)";
                 handlerLines.Add($"        {routeBuilderExpression}.MapPost(\"/{entityName}\", async (HttpRequest httpRequest, IMediator mediator, {endpoint.RequestTypeName} request)");
-                lastHandlerLine = "            => await mediator.Send(request))";
+                lastHandlerLine = $"            => {returnExpr})";
             }
 
             var endpointChain = new List<string>();
@@ -866,7 +943,7 @@ public class MinimalApiGenerator : IIncrementalGenerator
         }
     }
 
-    
+
 
 
 }
