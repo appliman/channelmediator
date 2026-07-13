@@ -8,10 +8,13 @@
     <Project Path="src/ChannelMediator.InMemory/ChannelMediator.InMemory.csproj" />
     <Project Path="src/ChannelMediator.RabbitMQ/ChannelMediator.RabbitMQ.csproj" />
   </Folder>
-  <Folder Name="/3-Api/">
-    <Project Path="src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj" Id="070ffeae-1518-4c3e-b11b-5ecd853ac7b8" />
+  <Folder Name="/3-Api/" />
+  <Folder Name="/3-Api/Grpc/">
     <Project Path="src/ChannelMediator.GrpcClientGenerator/ChannelMediator.GrpcClientGenerator.csproj" />
     <Project Path="src/ChannelMediator.GrpcGenerator/ChannelMediator.GrpcGenerator.csproj" />
+  </Folder>
+  <Folder Name="/3-Api/Rest/">
+    <Project Path="src/ChannelMediator.ApiClientGenerator/ChannelMediator.ApiClientGenerator.csproj" Id="070ffeae-1518-4c3e-b11b-5ecd853ac7b8" />
     <Project Path="src/ChannelMediator.ApiGenerators.Abstraction/ChannelMediator.ApiGenerators.Abstraction.csproj" />
     <Project Path="src/ChannelMediator.MinimalApiGenerator/ChannelMediator.MinimalApiGenerator.csproj" />
   </Folder>
