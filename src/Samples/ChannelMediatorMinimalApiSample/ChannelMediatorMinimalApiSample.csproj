@@ -7,9 +7,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-		<PackageReference Include="Scalar.AspNetCore" Version="2.14.14" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageReference Include="Microsoft.OpenApi" Version="3.8.0" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.16.11" />
 	</ItemGroup>
+
+	<!--
+		The ASP.NET Core 10 XML comment source generator assigns
+		IOpenApiMediaType.Example, which is read-only in Microsoft.OpenApi 3.x.
+		Disable only that compile-time generator until it supports OpenAPI.NET 3.x.
+		Runtime OpenAPI document generation remains enabled.
+	-->
+	<Target Name="DisableIncompatibleOpenApiXmlCommentGenerator" BeforeTargets="CoreCompile">
+		<ItemGroup>
+			<Analyzer Remove="@(Analyzer)"
+					  Condition="'%(Analyzer.Filename)%(Analyzer.Extension)' == 'Microsoft.AspNetCore.OpenApi.SourceGenerators.dll'" />
+		</ItemGroup>
+	</Target>
 
 	<ItemGroup>
     <Folder Include="_temp\" />
