@@ -1,3 +1,5 @@
+﻿using Microsoft.Extensions.Logging;
+
 namespace ChannelMediator.InMemory;
 
 /// <summary>
@@ -41,7 +43,19 @@ public static class MediatorExtensions
 			?? throw new InvalidOperationException(
 				"GlobalPublisher is not configured. Ensure UseChannelMediatorInMemory() has been called during service configuration.");
 
-		_ = Task.Run(() => publisher.Notify(notification, cancellationToken), CancellationToken.None);
+		_ = Task.Run(() =>
+		{
+			try
+			{
+				publisher.Notify(notification, cancellationToken);
+			}
+			catch(Exception ex)
+			{
+				System.Diagnostics.Trace.WriteLine($"Error while notifying: {ex}");
+				System.Diagnostics.Trace.WriteLine($"Notification: {notification}");
+			}
+		}
+		, CancellationToken.None);
 		return Task.CompletedTask;
 	}
 
@@ -63,7 +77,19 @@ public static class MediatorExtensions
 			?? throw new InvalidOperationException(
 				"GlobalPublisher is not configured. Ensure UseChannelMediatorInMemory() has been called during service configuration.");
 
-		_ = Task.Run(() => publisher.EnqueueRequest(request, cancellationToken), CancellationToken.None);
+		_ = Task.Run(() =>
+		{
+			try
+			{
+				publisher.EnqueueRequest(request, cancellationToken);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Trace.WriteLine($"Error while enqueuing request: {ex}");
+				System.Diagnostics.Trace.WriteLine($"Request: {request}");
+			}
+		}
+		, CancellationToken.None);
 		return Task.CompletedTask;
 	}
 }
