@@ -10,14 +10,14 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   SOLUTION_FILE: ChannelMediator.slnx
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
   publish:
     name: Pack & Publish to NuGet
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -113,9 +113,17 @@ jobs:
           path: ./nupkgs/*.nupkg
           retention-days: 14
 
+      - name: Sign in to NuGet.org with OIDC
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: appliman
+
       - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: >
           dotnet nuget push ./nupkgs/*.nupkg
-          --api-key ${{ secrets.NUGET_API_KEY }}
+          --api-key "$NUGET_API_KEY"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
