@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator;
+namespace ChannelMediator;
 
 internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 	: IRequestHandlerWrapper where TRequest : IRequest<TResponse>
@@ -14,28 +14,47 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse>
 
 	public async ValueTask<object> HandleAsync(object request, CancellationToken cancellationToken)
 	{
-		using var scope = _serviceProvider.CreateScope();
+		await using var scope = _serviceProvider.CreateAsyncScope();
 		var typedRequest = (TRequest)request;
-
 		var behaviors = scope.ServiceProvider.GetServices<IPipelineBehavior<TRequest, TResponse>>();
-
-		// Materialize once; iterate backward to build the pipeline from innermost to outermost
 		var behaviorArray = behaviors as IPipelineBehavior<TRequest, TResponse>[] ?? behaviors.ToArray();
 
-		RequestHandlerDelegate<TResponse> handler = async () =>
+		TResponse result;
+		if (behaviorArray.Length == 0)
 		{
-			var requestHandler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-			return await requestHandler.Handle(typedRequest, cancellationToken);
-		};
-
-		for (var i = behaviorArray.Length - 1; i >= 0; i--)
+			var handler = scope.ServiceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
+			result = await handler.Handle(typedRequest, cancellationToken);
+		}
+		else
 		{
-			var currentHandler = handler;
-			var behavior = behaviorArray[i];
-			handler = () => behavior.HandleAsync(typedRequest, currentHandler, cancellationToken);
+			result = await InvokePipelineAsync(scope.ServiceProvider, typedRequest, behaviorArray, cancellationToken);
 		}
 
-		var response = await handler();
-		return response!;
+		return result!;
+	}
+
+	private static ValueTask<TResponse> InvokePipelineAsync(
+		IServiceProvider serviceProvider,
+		TRequest request,
+		IPipelineBehavior<TRequest, TResponse>[] behaviors,
+		CancellationToken cancellationToken)
+	{
+		// Resolve lazily: a behavior may return without constructing the handler.
+		RequestHandlerDelegate<TResponse> handler = () =>
+		{
+			var requestHandler = serviceProvider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
+			var result = new ValueTask<TResponse>(requestHandler.Handle(request, cancellationToken));
+			return result;
+		};
+
+		for (var i = behaviors.Length - 1; i >= 0; i--)
+		{
+			var currentHandler = handler;
+			var behavior = behaviors[i];
+			handler = () => behavior.HandleAsync(request, currentHandler, cancellationToken);
+		}
+
+		var result = handler();
+		return result;
 	}
 }

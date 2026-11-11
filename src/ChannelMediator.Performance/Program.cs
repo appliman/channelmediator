@@ -1,75 +1,103 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using ChannelMediator;
 using Microsoft.Extensions.DependencyInjection;
 
-// Define a simple request/response types local to this program
-public record PerfRequest(byte[] Payload) : IRequest<PerfResponse>;
-public record PerfResponse(int Length);
-
-// Handler
-public class PerfHandler : IRequestHandler<PerfRequest, PerfResponse>
-{
-    public ValueTask<PerfResponse> HandleAsync(PerfRequest request, CancellationToken cancellationToken)
-    {
-        return ValueTask.FromResult(new PerfResponse(request.Payload.Length));
-    }
-
-    public async Task<PerfResponse> Handle(PerfRequest request, CancellationToken cancellationToken)
-    {
-     return await HandleAsync(request, cancellationToken);
-    }
-}
-
 [MemoryDiagnoser]
 public class MediatorBenchmarks
 {
+    private const int BatchSize = 256;
+    private readonly PerfRequest _request = new();
+    private readonly Task<PerfResponse>[] _pending = new Task<PerfResponse>[BatchSize];
+    private ServiceProvider _provider = null!;
+    private ServiceProvider _behaviorProvider = null!;
     private IMediator _mediator = null!;
-    private int _messageSize = 256;
-    private int _messageCount = 1000;
-    private int _concurrentSenders = 8;
-
-    [Params(64, 256, 1024)]
-    public int MessageSizeParam { get; set; }
-
-    [Params(1, 8)]
-    public int ConcurrencyParam { get; set; }
+    private IMediator _behaviorMediator = null!;
+    private CancellationTokenSource _cancellation = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _messageSize = MessageSizeParam;
-        _concurrentSenders = ConcurrencyParam;
-
         var services = new ServiceCollection();
         services.AddChannelMediator(null, typeof(MediatorBenchmarks).Assembly);
-        var provider = services.BuildServiceProvider();
-        _mediator = provider.GetRequiredService<IMediator>();
+        _provider = services.BuildServiceProvider();
+        _mediator = _provider.GetRequiredService<IMediator>();
 
-        // Register handler type in the scanned assemblies so AddChannelMediator can find it
-        // (handlers in this assembly will be discovered by AddChannelMediator during registration)
+        var behaviorServices = new ServiceCollection();
+        behaviorServices.AddChannelMediator(null, typeof(MediatorBenchmarks).Assembly);
+        behaviorServices.AddScoped<IPipelineBehavior<PerfRequest, PerfResponse>, PerfBehavior>();
+        _behaviorProvider = behaviorServices.BuildServiceProvider();
+        _behaviorMediator = _behaviorProvider.GetRequiredService<IMediator>();
+        _cancellation = new CancellationTokenSource();
     }
 
-    [Benchmark]
-    public async Task InvokeManyAsync()
+    [GlobalCleanup]
+    public async Task CleanupAsync()
     {
-        int perSender = _messageCount / _concurrentSenders;
-        var tasks = new List<Task>();
-        for (int s = 0; s < _concurrentSenders; s++)
+        await _behaviorProvider.DisposeAsync();
+        await _provider.DisposeAsync();
+        _cancellation.Dispose();
+    }
+
+    // Requests and responses are cached to isolate mediator overhead from payload allocation.
+    [Benchmark(OperationsPerInvoke = BatchSize)]
+    public async Task SequentialAsync()
+    {
+        for (var i = 0; i < BatchSize; i++)
         {
-            tasks.Add(Task.Run(async () =>
-            {
-                for (int i = 0; i < perSender; i++)
-                {
-                    var payload = new byte[_messageSize];
-                    var request = new PerfRequest(payload);
-                  var res = await _mediator.Send(request);
-                    if (res.Length != _messageSize) throw new InvalidOperationException("Invalid response");
-                }
-            }));
+            await _mediator.Send(_request);
+        }
+    }
+
+    [Benchmark(OperationsPerInvoke = BatchSize)]
+    public async Task WithBehaviorAsync()
+    {
+        for (var i = 0; i < BatchSize; i++)
+        {
+            await _behaviorMediator.Send(_request);
+        }
+    }
+
+    [Benchmark(OperationsPerInvoke = BatchSize)]
+    public async Task WithCancellationTokenAsync()
+    {
+        for (var i = 0; i < BatchSize; i++)
+        {
+            await _mediator.Send(_request, _cancellation.Token);
+        }
+    }
+
+    [Benchmark(OperationsPerInvoke = BatchSize)]
+    public async Task BurstAsync()
+    {
+        for (var i = 0; i < BatchSize; i++)
+        {
+            _pending[i] = _mediator.Send(_request);
         }
 
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(_pending);
+    }
+}
+
+public sealed record PerfRequest : IRequest<PerfResponse>;
+public sealed record PerfResponse;
+
+public sealed class PerfHandler : IRequestHandler<PerfRequest, PerfResponse>
+{
+    private static readonly Task<PerfResponse> Response = Task.FromResult(new PerfResponse());
+
+    public Task<PerfResponse> Handle(PerfRequest request, CancellationToken cancellationToken)
+    {
+        return Response;
+    }
+}
+
+public sealed class PerfBehavior : IPipelineBehavior<PerfRequest, PerfResponse>
+{
+    public ValueTask<PerfResponse> HandleAsync(PerfRequest request, RequestHandlerDelegate<PerfResponse> next, CancellationToken cancellationToken)
+    {
+        var result = next();
+        return result;
     }
 }
 
@@ -77,6 +105,6 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        BenchmarkRunner.Run<MediatorBenchmarks>();
+        BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
     }
 }

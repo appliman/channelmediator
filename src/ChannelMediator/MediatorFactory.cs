@@ -12,6 +12,7 @@ internal sealed class MediatorFactory : IMediatorFactory
 	private readonly FrozenDictionary<Type, IStreamRequestHandlerWrapper> _streamHandlers;
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ChannelMediatorConfiguration _notificationConfiguration;
+	private readonly RequestChainLimiter? _requestChainLimiter;
 
 	public MediatorFactory(
 		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
@@ -25,11 +26,19 @@ internal sealed class MediatorFactory : IMediatorFactory
 		_streamHandlers = streamHandlers ?? FrozenDictionary<Type, IStreamRequestHandlerWrapper>.Empty;
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
+		if (_notificationConfiguration.QueueCapacity is <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(notificationConfiguration), "QueueCapacity must be positive.");
+		}
+		_requestChainLimiter = _notificationConfiguration.MaxConcurrentRequestChains is int capacity
+			? new RequestChainLimiter(capacity)
+			: null;
 	}
 
 	/// <inheritdoc />
 	public IMediator CreateMediator()
 	{
-		return new Mediator(_handlers, _notificationHandlers, _serviceProvider, _notificationConfiguration, _streamHandlers);
+		var result = new Mediator(_handlers, _notificationHandlers, _serviceProvider, _notificationConfiguration, _streamHandlers, _requestChainLimiter);
+		return result;
 	}
 }

@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator;
+namespace ChannelMediator;
 
 internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 {
@@ -11,13 +11,19 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 	private readonly CancellationTokenSource _cts = new();
 	private readonly Task _pump;
 	private readonly ILogger<Mediator> _logger;
+	private readonly RequestChainLimiter? _requestChainLimiter;
+	private readonly object _disposeLock = new();
+	private Task? _disposeTask;
+	private int _inlineCount;
+	private TaskCompletionSource? _inlineCompleted;
 
 	internal Mediator(
 		FrozenDictionary<Type, IRequestHandlerWrapper> handlers,
 		FrozenDictionary<Type, INotificationHandlerWrapper>? notificationHandlers = null,
 		IServiceProvider? serviceProvider = null,
 		ChannelMediatorConfiguration? notificationConfiguration = null,
-		FrozenDictionary<Type, IStreamRequestHandlerWrapper>? streamHandlers = null)
+		FrozenDictionary<Type, IStreamRequestHandlerWrapper>? streamHandlers = null,
+		RequestChainLimiter? requestChainLimiter = null)
 	{
 		_handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
 		_notificationHandlers = notificationHandlers ?? FrozenDictionary<Type, INotificationHandlerWrapper>.Empty;
@@ -25,11 +31,19 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		_serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 		_notificationConfiguration = notificationConfiguration ?? new ChannelMediatorConfiguration();
 		_logger = _serviceProvider.GetService<ILogger<Mediator>>() ?? NullLogger<Mediator>.Instance;
-		_channel = Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
-		{
-			SingleReader = true,
-			SingleWriter = false
-		});
+		_requestChainLimiter = requestChainLimiter;
+		_channel = _notificationConfiguration.QueueCapacity is int capacity
+			? Channel.CreateBounded<IRequestEnvelope>(new BoundedChannelOptions(capacity)
+			{
+				SingleReader = true,
+				SingleWriter = false,
+				FullMode = BoundedChannelFullMode.Wait
+			})
+			: Channel.CreateUnbounded<IRequestEnvelope>(new UnboundedChannelOptions
+			{
+				SingleReader = true,
+				SingleWriter = false
+			});
 
 		_pump = Task.Run(ProcessAsync);
 	}
@@ -50,10 +64,43 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 		var completionSource = new TaskCompletionSource<TResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
 		var envelope = new RequestEnvelope<TResponse>(request, completionSource, cancellationToken);
+		using var registration = cancellationToken.UnsafeRegister(
+			static (state, token) => ((IRequestEnvelope)state!).Cancel(token), envelope);
 
-		await _channel.Writer.WriteAsync(envelope, cancellationToken);
+		if (_requestChainLimiter is { IsNested: true } && TryStartInline())
+		{
+			// Awaited descendants share the root permit. Queueing here could deadlock
+			// against their parent or a different request waiting for the same permit.
+			try
+			{
+				await envelope.DispatchAsync(_handlers, _cts.Token);
+			}
+			finally
+			{
+				lock (_disposeLock)
+				{
+					if (--_inlineCount == 0)
+					{
+						_inlineCompleted!.TrySetResult();
+					}
+				}
+			}
+		}
+		else
+		{
+			try
+			{
+				await _channel.Writer.WriteAsync(envelope, cancellationToken);
+			}
+			catch
+			{
+				envelope.Cancel(cancellationToken);
+				throw;
+			}
+		}
 
-		return await completionSource.Task;
+		var result = await completionSource.Task;
+		return result;
 	}
 
 	/// <inheritdoc />
@@ -107,17 +154,25 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 		CancellationToken cancellationToken)
 		where TNotification : INotification
 	{
-		using var scope = _serviceProvider.CreateScope();
+		await using var scope = _serviceProvider.CreateAsyncScope();
 		var handlers = scope.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
 
 		var handlerArray = handlers as INotificationHandler<TNotification>[] ?? handlers.ToArray();
 		var tasks = new Task[handlerArray.Length];
 		for (var i = 0; i < handlerArray.Length; i++)
 		{
-			tasks[i] = handlerArray[i].Handle(notification, cancellationToken);
+			tasks[i] = InvokeNotificationAsync(handlerArray[i], notification, cancellationToken);
 		}
 
 		await Task.WhenAll(tasks);
+	}
+
+	private static async Task InvokeNotificationAsync<TNotification>(
+		INotificationHandler<TNotification> handler, TNotification notification, CancellationToken cancellationToken)
+		where TNotification : INotification
+	{
+		// Capture synchronous exceptions so all started handlers finish before scope disposal.
+		await handler.Handle(notification, cancellationToken);
 	}
 
 	/// <inheritdoc />
@@ -148,66 +203,105 @@ internal sealed class Mediator : IMediator, IAsyncDisposable, IDisposable
 
 	private async Task ProcessAsync()
 	{
+		IRequestEnvelope? current = null;
 		try
 		{
 			await foreach (var envelope in _channel.Reader.ReadAllAsync(_cts.Token))
 			{
-				await envelope.DispatchAsync(_handlers, _cts.Token);
+				current = envelope;
+				_cts.Token.ThrowIfCancellationRequested();
+				if (_requestChainLimiter is null)
+				{
+					await envelope.DispatchAsync(_handlers, _cts.Token);
+				}
+				else
+				{
+					await _requestChainLimiter.DispatchAsync(envelope, _handlers, _cts.Token);
+				}
+				current = null;
 			}
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (_cts.IsCancellationRequested)
 		{
-			// Shutdown requested
+			// Shutdown is cooperative for the active handler; queued work never starts.
+		}
+		finally
+		{
+			current?.Cancel(_cts.Token);
+			while (_channel.Reader.TryRead(out var pending))
+			{
+				pending.Cancel(_cts.Token);
+			}
 		}
 	}
 
 	private int _disposed;
 
-	public void Dispose()
+	private bool TryStartInline()
 	{
-		if (Interlocked.Exchange(ref _disposed, 1) == 1)
+		lock (_disposeLock)
 		{
-			return;
+			if (_disposed != 0)
+			{
+				return false;
+			}
+			if (_inlineCount++ == 0)
+			{
+				_inlineCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+			}
+			return true;
 		}
-
-		_channel.Writer.TryComplete();
-		_cts.Cancel();
-
-		try
-		{
-			_pump.GetAwaiter().GetResult();
-		}
-		catch (OperationCanceledException)
-		{
-			// Dead for science
-		}
-
-		_cts.Dispose();
 	}
 
-	public async ValueTask DisposeAsync()
+	public void Dispose()
 	{
-		if (Interlocked.Exchange(ref _disposed, 1) == 1)
+		GetDisposeTask().GetAwaiter().GetResult();
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		var result = new ValueTask(GetDisposeTask());
+		return result;
+	}
+
+	private Task GetDisposeTask()
+	{
+		lock (_disposeLock)
 		{
-			return;
+			if (_disposeTask is null)
+			{
+				Volatile.Write(ref _disposed, 1);
+				_channel.Writer.TryComplete();
+				// Synchronous DI disposal must not block a captured UI synchronization context.
+				// All callers share this task and wait for the handler and its scope to finish.
+				_disposeTask = Task.Run(StopAsync);
+			}
+			return _disposeTask;
 		}
+	}
 
-		_channel.Writer.TryComplete();
-
-		if (!_cts.IsCancellationRequested)
+	private async Task StopAsync()
+	{
+		try
 		{
 			await _cts.CancelAsync();
 		}
-
-		try
+		finally
 		{
-			await _pump;
+			try
+			{
+				await _pump;
+				Task inlineTask;
+				lock (_disposeLock)
+				{
+					inlineTask = _inlineCompleted?.Task ?? Task.CompletedTask;
+				}
+				await inlineTask;
+			}
+			finally
+			{
+				_cts.Dispose();
+			}
 		}
-		catch (OperationCanceledException)
-		{
-			// Dead for science
-		}
-
-		_cts.Dispose();
 	}
 }

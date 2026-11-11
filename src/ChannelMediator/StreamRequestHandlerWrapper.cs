@@ -22,11 +22,11 @@ internal sealed class StreamRequestHandlerWrapper<TRequest, TResponse>
 		[System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		// The scope lives for the full duration of the enumeration
-		using var scope = _serviceProvider.CreateScope();
+		await using var scope = _serviceProvider.CreateAsyncScope();
 
 		var behaviors = scope.ServiceProvider
-			.GetServices<IStreamPipelineBehavior<TRequest, TResponse>>()
-			.ToArray();
+			.GetServices<IStreamPipelineBehavior<TRequest, TResponse>>();
+		var behaviorArray = behaviors as IStreamPipelineBehavior<TRequest, TResponse>[] ?? behaviors.ToArray();
 
 		StreamHandlerDelegate<TResponse> handler = () =>
 		{
@@ -35,10 +35,10 @@ internal sealed class StreamRequestHandlerWrapper<TRequest, TResponse>
 			return requestHandler.Handle(request, cancellationToken);
 		};
 
-		for (var i = behaviors.Length - 1; i >= 0; i--)
+		for (var i = behaviorArray.Length - 1; i >= 0; i--)
 		{
 			var currentHandler = handler;
-			var behavior = behaviors[i];
+			var behavior = behaviorArray[i];
 			handler = () => behavior.Handle(request, currentHandler, cancellationToken);
 		}
 
