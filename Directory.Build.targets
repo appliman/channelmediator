@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <MicrosoftExtensionsVersion>11.0.0</MicrosoftExtensionsVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <Features>$(Features);runtime-async=on</Features>
+  </PropertyGroup>
+</Project>

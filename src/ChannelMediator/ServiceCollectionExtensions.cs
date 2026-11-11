@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ChannelMediator;
 
@@ -169,44 +170,23 @@ public static class ServiceCollectionExtensions
 
 					services.AddScoped(handlerInterface, handlerType);
 
-					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
-					services.AddSingleton(typeof(IRequestHandlerWrapper), sp =>
+					// The short command interface inherits IRequestHandler<TRequest, Unit>.
+					// Forward to the winning registration so both interfaces share the scoped instance.
+					var commandInterface = handlerType.GetInterfaces().FirstOrDefault(i =>
+						i.IsGenericType && i.GetGenericTypeDefinition() == commandHandlerInterfaceType &&
+						i.GetGenericArguments()[0] == requestType);
+					if (commandInterface is not null)
 					{
-						return ActivatorUtilities.CreateInstance(sp, wrapperType);
-					});
-				}
-
-				// Register IRequestHandler<TRequest> handlers (commands without response)
-				var commandHandlerInterfaces = handlerType.GetInterfaces()
-					.Where(i => i.IsGenericType &&
-							   i.GetGenericTypeDefinition() == commandHandlerInterfaceType &&
-							   !handlerInterfaces.Any(h => h.GetGenericArguments()[0] == i.GetGenericArguments()[0]))
-					.ToList();
-
-				foreach (var commandHandlerInterface in commandHandlerInterfaces)
-				{
-					var requestType = commandHandlerInterface.GetGenericArguments()[0];
-					var responseType = typeof(Unit);
-
-					if (!registeredRequestTypes.Add(requestType) || services.Any(sd => sd.ServiceType == commandHandlerInterface))
-					{
-						continue;
+						services.TryAddScoped(commandInterface, sp => sp.GetRequiredService(handlerInterface));
 					}
 
-					// Register the command handler interface
-					services.AddScoped(commandHandlerInterface, handlerType);
-
-					// Also register as IRequestHandler<TRequest, Unit> so the wrapper can resolve it directly
-					var queryHandlerInterface = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
-					services.AddScoped(queryHandlerInterface, sp => sp.GetRequiredService(commandHandlerInterface));
-
-					// Create a wrapper that bridges IRequestHandler<TRequest> to IRequestHandler<TRequest, Unit>
 					var wrapperType = typeof(RequestHandlerWrapper<,>).MakeGenericType(requestType, responseType);
 					services.AddSingleton(typeof(IRequestHandlerWrapper), sp =>
 					{
 						return ActivatorUtilities.CreateInstance(sp, wrapperType);
 					});
 				}
+
 			}
 		}
 	}
@@ -235,7 +215,7 @@ public static class ServiceCollectionExtensions
 					var notificationType = handlerInterface.GetGenericArguments()[0];
 					notificationTypes.Add(notificationType);
 
-					services.AddScoped(handlerInterface, handlerType);
+					services.TryAddEnumerable(ServiceDescriptor.Scoped(handlerInterface, handlerType));
 				}
 			}
 		}
@@ -243,10 +223,7 @@ public static class ServiceCollectionExtensions
 		foreach (var notificationType in notificationTypes)
 		{
 			var wrapperType = typeof(NotificationHandlerWrapper<>).MakeGenericType(notificationType);
-			services.AddSingleton(typeof(INotificationHandlerWrapper), sp =>
-			{
-				return ActivatorUtilities.CreateInstance(sp, wrapperType);
-			});
+			services.TryAddEnumerable(ServiceDescriptor.Singleton(typeof(INotificationHandlerWrapper), wrapperType));
 		}
 	}
 

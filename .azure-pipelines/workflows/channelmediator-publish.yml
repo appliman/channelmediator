@@ -13,7 +13,7 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
-  dotnetVersion: '10.x'
+  dotnetVersion: '11.0.x'
 
 stages:
   - stage: Build
@@ -29,10 +29,10 @@ stages:
               version: '10.x'
 
           - task: UseDotNet@2
-            displayName: 'Install .NET 9'
+            displayName: 'Install .NET 11'
             inputs:
               packageType: 'sdk'
-              version: '9.x'
+              version: '$(dotnetVersion)'
 
           - task: NuGetAuthenticate@1
             displayName: 'Authenticate to Azure Artifacts'
@@ -77,10 +77,10 @@ stages:
               version: '10.x'
 
           - task: UseDotNet@2
-            displayName: 'Install .NET 9'
+            displayName: 'Install .NET 11'
             inputs:
               packageType: 'sdk'
-              version: '9.x'
+              version: '$(dotnetVersion)'
 
           - task: NuGetAuthenticate@1
             displayName: 'Authenticate to Azure Artifacts'
@@ -116,10 +116,10 @@ stages:
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 
           - task: DotNetCoreCLI@2
-            displayName: 'Pack ChannelMediator.MinimalApiGenerator.Abstraction'
+            displayName: 'Pack ChannelMediator.ApiGenerators.Abstraction'
             inputs:
               command: 'pack'
-              packagesToPack: 'src/ChannelMediator.MinimalApiGenerator.Abstraction/ChannelMediator.MinimalApiGenerator.Abstraction.csproj'
+              packagesToPack: 'src/ChannelMediator.ApiGenerators.Abstraction/ChannelMediator.ApiGenerators.Abstraction.csproj'
               configuration: '$(buildConfiguration)'
               outputDir: '$(Build.ArtifactStagingDirectory)/nuget'
 

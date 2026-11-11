@@ -11,12 +11,31 @@
 [![NuGet ChannelMediator.GrpcGenerator](https://img.shields.io/nuget/v/ChannelMediator.GrpcGenerator?label=ChannelMediator.GrpcGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.GrpcGenerator/)
 [![NuGet ChannelMediator.GrpcClientGenerator](https://img.shields.io/nuget/v/ChannelMediator.GrpcClientGenerator?label=ChannelMediator.GrpcClientGenerator&logo=nuget)](https://www.nuget.org/packages/ChannelMediator.GrpcClientGenerator/)
 [![Build](https://github.com/appliman/channelmediator/actions/workflows/ci-publish.yml/badge.svg)](https://github.com/appliman/channelmediator/actions)
-[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0%20%7C%2010.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0%20%7C%2011.0-purple?logo=dotnet)](https://dotnet.microsoft.com/)
 [![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp)](https://learn.microsoft.com/dotnet/csharp/)
 
 A modern, high-performance mediator for .NET, built on `System.Threading.Channels`, with **full MediatR compatibility**.
 
-Compatible with **.NET 8**, **.NET 9**, and **.NET 10**.
+Compatible with **.NET 10** and **.NET 11**.
+
+## Compatibility and performance
+
+**Breaking change.** The ChannelMediator runtime packages now target `net10.0` and `net11.0`. If your application targets .NET 8 or .NET 9, upgrade it to .NET 10 or .NET 11 before updating ChannelMediator, or keep using a package version that supports your target framework.
+
+**Runtime Async on .NET 11.** The `net11.0` build enables the C# compiler feature `runtime-async=on` in [Directory.Build.targets](Directory.Build.targets). The setting applies only to the .NET 11 target.
+
+The request dispatch path skips pipeline delegate construction when no behaviors are registered and avoids creating a linked cancellation token source when the caller's token cannot be canceled.
+
+The [BenchmarkDotNet suite](src/ChannelMediator.Performance/Program.cs) compared the previous and optimized implementations with the default configuration and a handler that returns a cached response. Figures are per request.
+
+| Scenario | .NET 11 mean time | .NET 11 allocated | .NET 10 allocated |
+| --- | ---: | ---: | ---: |
+| Sequential send | 2,127.8 → 1,627.2 ns | 798 → 702 B | 880 → 752 B |
+| Send with a pipeline behavior | 2,240.5 → 1,851.0 ns | 949 → 949 B | 1,040 → 1,016 B |
+| Send with a cancelable token | 2,248.9 → 1,990.4 ns | 813 → 781 B | 896 → 832 B |
+| Burst of sends | 772.1 → 652.4 ns | 922 → 826 B | 802 → 674 B |
+
+On .NET 11, the sequential send took 23.5% less time and allocated 12.0% less memory in this benchmark. On .NET 10, allocations fell by 14.5% for sequential sends and 16.0% for bursts. The .NET 10 timing intervals overlapped, so these runs do not establish a speedup.
 
 ## ✨ Features
 
@@ -33,7 +52,7 @@ Compatible with **.NET 8**, **.NET 9**, and **.NET 10**.
 - ✅ **API Client Generator** - Source-generated `HttpClient` handlers for consuming generated APIs
 - ✅ **gRPC Generator** - Source-generated code-first gRPC services via `protobuf-net.Grpc`
 - ✅ **gRPC Client Generator** - Source-generated `IRequestHandler` calling gRPC services
-- ✅ **.NET 8 / 9 / 10** - Multi-targeted packages for current .NET versions
+- ✅ **.NET 10 / 11** - Multi-targeted packages
 
 ## 📦 Installation
 
@@ -484,7 +503,7 @@ public async Task Should_Handle_Request()
 
 ## 🔧 Compatibility
 
-- **.NET 10** (can be back-ported to .NET 8)
+- **.NET 10 and 11**
 - **C# 14** (can be adapted for C# 12)
 - **Microsoft.Extensions.DependencyInjection 9.0+**
 
@@ -505,6 +524,6 @@ Contributions are welcome! Open an issue or a PR.
 
 1. **Performance** - Channel-based asynchronous processing
 2. **Flexibility** - MediatR-compatible API with powerful extensions
-3. **Modern** - .NET 10, C# 14, modern patterns
+3. **Modern** - .NET 10 and 11, C# 14, modern patterns
 4. **Powerful** - Global behaviors, parallel notifications
 5. **Familiar** - MediatR compatible, easy migration

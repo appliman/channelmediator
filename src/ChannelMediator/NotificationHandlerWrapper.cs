@@ -1,4 +1,4 @@
-﻿namespace ChannelMediator;
+namespace ChannelMediator;
 
 internal sealed class NotificationHandlerWrapper<TNotification> : INotificationHandlerWrapper
 	where TNotification : INotification
@@ -9,7 +9,7 @@ internal sealed class NotificationHandlerWrapper<TNotification> : INotificationH
 	{
 		var typedNotification = (TNotification)notification;
 
-		using var scope = serviceProvider.CreateScope();
+		await using var scope = serviceProvider.CreateAsyncScope();
 		var handlers = scope.ServiceProvider.GetServices<INotificationHandler<TNotification>>();
 
 		foreach (var handler in handlers)

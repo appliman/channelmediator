@@ -85,7 +85,7 @@ It provides request/response dispatch, fire-and-forget commands, notification fa
 
 ### Targets
 
-- Multi-targeting: `net10.0;net9.0;net8.0`.
+- Multi-targeting: `net11.0;net10.0`.
 - C# 12 features allowed. Do not raise `<LangVersion>` or change TFMs unless asked.
 - Nullable reference types enabled (`<Nullable>enable</Nullable>`).
 

@@ -35,7 +35,7 @@ Main projects:
 | `ChannelMediator.Tests` | xUnit tests. |
 | `Samples/*` | Console, Blazor, Minimal API, gRPC, Azure Service Bus, and RabbitMQ samples. |
 
-Targets are currently .NET 8, .NET 9, .NET 10, and .NET Standard 2.0 where applicable. Do not change target frameworks, SDK versions, or language version unless the user explicitly asks.
+Targets are currently .NET 10, .NET 11, and .NET Standard 2.0 where applicable. Do not change target frameworks, SDK versions, or language version unless the user explicitly asks.
 
 ## Core Rules for LLM Agents
 
